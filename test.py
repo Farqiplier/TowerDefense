@@ -1,9 +1,9 @@
 import pygame
 import sys
-from tower import tower
+from tower import ArrowTower, LaserTower, CannonTower
 from enemy import RedEnemy, BlueEnemy, GreenEnemy, YellowEnemy
 from enemy_list import wave_1, path
-from menu import Menu  # Import the Menu class
+from menu import Menu
 
 # Initialize pygame
 pygame.init()
@@ -19,17 +19,14 @@ black = (0, 0, 0)
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Tower Defense")
 
-# Create a tower instance at (400, 400)
-tower_instance = tower(400, 400)
-
 # Define the path
 path_line_amount = len(path) - 1
 path_thickness = 8
 
-# Player health
+# Player health and money
 player_health = 100
 
-# Font for displaying health
+# Font for displaying health and money
 font = pygame.font.Font(None, 36)
 
 # Enemy spawning variables
@@ -41,7 +38,9 @@ wave_start_time = pygame.time.get_ticks() / 1000  # Start time in seconds
 # Initialize the menu with $300 starting money
 menu = Menu(screen, money=300)
 
-# Main loop
+# Towers list
+towers = []
+
 # Initialize clock for managing frame rate
 clock = pygame.time.Clock()
 
@@ -51,12 +50,29 @@ while running:
     delta_time = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
     current_time = pygame.time.get_ticks() / 1000.0  # Current time in seconds
 
+    mouse_pos = pygame.mouse.get_pos()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             # Handle clicks for the menu
             menu.handle_click(event.pos)
+
+            # Handle tower placement
+            if menu.preview_tower:
+                # Ensure the tower is placed outside the menu area
+                if event.pos[1] < 750:
+                    tower_type = menu.preview_tower["name"]
+                    if menu.money >= menu.preview_tower["price"]:
+                        if tower_type == "Arrow Tower":
+                            towers.append(ArrowTower(event.pos[0], event.pos[1]))
+                        elif tower_type == "Laser Tower":
+                            towers.append(LaserTower(event.pos[0], event.pos[1]))
+                        elif tower_type == "Cannon Tower":
+                            towers.append(CannonTower(event.pos[0], event.pos[1]))
+                        menu.money -= menu.preview_tower["price"]
+                        menu.preview_tower = None  # Clear the preview
 
     # Fill the screen with white
     screen.fill(white)
@@ -98,13 +114,22 @@ while running:
             player_health -= enemy.health
             enemy_list.remove(enemy)  # Remove the enemy
 
+    # Update and draw towers
+    for tower in towers:
+        tower.fire(enemy_list, current_time)  # Pass current_time to respect fire rate
+        tower.update_projectiles(screen, enemy_list)
+        tower.draw(screen)
+
     # Display player health
     health_text = font.render(f"Health: {player_health}", True, black)
-    screen.blit(health_text, (0 + 50, 10))
+    screen.blit(health_text, (50, 10))
 
     # Draw the menu and the player's money
     menu.draw_menu()
     menu.draw_money()
+
+    # Draw the preview tower
+    menu.draw_preview(mouse_pos)
 
     # Update the display
     pygame.display.flip()

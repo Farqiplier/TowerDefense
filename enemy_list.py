@@ -4,7 +4,7 @@ from enemy import Enemy, RedEnemy, BlueEnemy, GreenEnemy, YellowEnemy
 wave_1 = [
     {
         "type": "RedEnemy",         "path": path,   "amount": 5,
-        "delay_from_start": 1,      "spawn_delay": 1
+        "delay_from_start": 0,      "spawn_delay": 0.75
     },
     {
         "type": "RedEnemy",         "path": path,   "amount": 5,

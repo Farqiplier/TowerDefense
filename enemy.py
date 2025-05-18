@@ -54,7 +54,7 @@ class RedEnemy(Enemy):
         super().__init__(path)
         self.color = (255, 0, 0)  # Red color for the enemy
         self.health = 1  # Health of the red enemy
-        self.speed = 1  # Speed of the red enemy
+        self.speed = 2  # Speed of the red enemy
         self.money = 2  # Money given when the red enemy is killed
 
 
