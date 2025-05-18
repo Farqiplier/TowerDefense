@@ -7,3 +7,5 @@ class tower:
         self.height = 40
         self.color = (255, 0, 0)
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
+    
+    def 
