@@ -23,7 +23,7 @@ class Tower:
                     self.last_shot_time = current_time
                     break
 
-    def draw(self, screen):
+    def draw(self, screen, enemies):
         pygame.draw.rect(screen, self.color, (self.x - self.width // 2, self.y - self.height // 2, self.width, self.height))
         for projectile in self.projectiles:
             projectile.draw(screen)
@@ -64,7 +64,7 @@ class LaserTower(Tower):
         self.color = (0, 0, 255)  # Blue color for laser
         self.price = 150
         self.fire_rate = 100  # Continuous damage (10 times per second)
-        self.damage_per_tick = 0.01  # Damage applied per tick
+        self.damage_per_tick = 0.1  # Damage applied per tick
 
     def fire(self, enemies, current_time):
         # Apply continuous damage to the first enemy in range
@@ -79,7 +79,7 @@ class LaserTower(Tower):
                 break
 
     def draw(self, screen, enemies):
-        super().draw(screen)
+        super().draw(screen, enemies)
         # Draw a laser beam to the first enemy in range
         for enemy in enemies:
             distance = ((enemy.x - self.x)**2 + (enemy.y - self.y)**2)**0.5
@@ -92,7 +92,7 @@ class CannonTower(Tower):
         super().__init__(x, y)
         self.color = (0, 255, 0)  # Green color for cannon
         self.price = 200
-        self.fire_rate = 0.25  # 1 shot every 4 seconds
+        self.fire_rate = 0.50  # 1 shot every 4 seconds
         self.projectile_speed = 4
         self.projectile_damage = 5
         self.explosion_radius = 100  # Radius of the explosion

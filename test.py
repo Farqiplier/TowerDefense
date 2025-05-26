@@ -1,5 +1,4 @@
 from turtle import pos
-from anyio import Path
 import pygame
 import sys
 from tower import ArrowTower, LaserTower, CannonTower
@@ -144,7 +143,7 @@ while running:
     for tower in towers:
         tower.fire(enemy_list, current_time)
         tower.update_projectiles(screen, enemy_list)
-        tower.draw(screen)
+        tower.draw(screen, enemy_list)
 
     # Clean up dead enemies and award money
     for enemy in enemy_list[:]:
