@@ -3,12 +3,12 @@ from enemy import Enemy, Red, Blue, Green, Yellow, Pink, Black, White, Purple, L
 
 wave_1 = [
     {
-        "type": "Pink",         "path": path,   "amount": 5,
+        "type": "Zebra",         "path": path,   "amount": 5,
         "delay_from_start": 0,      "spawn_delay": 0.75
     },
     {
         "type": "Red",         "path": path,   "amount": 5,
-        "delay_from_start": 3,      "spawn_delay": 1
+        "delay_from_start": 2,      "spawn_delay": 1
     },
     {
         "type": "Blue",        "path": path,   "amount": 5,
@@ -25,7 +25,7 @@ wave_1 = [
     {
         "type": "Green",       "path": path,   "amount": 5,
         "delay_from_start": 25,     "spawn_delay": 1
-    },
+    }
     # {
     #     "type": 
     # }
