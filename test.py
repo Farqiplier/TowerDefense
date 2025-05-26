@@ -3,7 +3,7 @@ from anyio import Path
 import pygame
 import sys
 from tower import ArrowTower, LaserTower, CannonTower
-from enemy import Red, Blue, Green, Yellow, Pink
+from enemy import Red, Blue, Green, Yellow, Pink, Black, White, Purple, Lead, Zebra, Rainbow
 from enemy_list import wave_1, path
 from menu import Menu
 
@@ -86,9 +86,13 @@ while running:
 
         pos_1_x, pos_1_y = path[i]
         pos_2_x, pos_2_y = path[i + 1]
-        pygame.draw.line(screen, Path_color, (pos_1_x - (path_thickness // 2), pos_1_y), (pos_2_x  + (path_thickness // 2), pos_2_y), path_thickness)
-        pygame.draw.line(screen, Red_color, (pos_1_x, pos_1_y), (pos_2_x, pos_2_y), path_thickness)
-
+        if pos_1_y < pos_2_y:
+            pygame.draw.line(screen, Path_color, (pos_1_x, pos_1_y - (path_thickness // 2)), (pos_2_x, pos_2_y + (path_thickness // 2)), path_thickness)
+        elif pos_1_y > pos_2_y:
+            pygame.draw.line(screen, Path_color, (pos_1_x, pos_1_y + (path_thickness // 2)), (pos_2_x, pos_2_y - (path_thickness // 2)), path_thickness)
+        else:
+            pygame.draw.line(screen, Path_color, (pos_1_x - (path_thickness // 2), pos_1_y), (pos_2_x + (path_thickness // 2), pos_2_y), path_thickness)
+            
     # Spawn enemies based on wave_1
     if wave_index < len(wave_1):
         wave = wave_1[wave_index]
@@ -106,6 +110,18 @@ while running:
                     enemy_list.append(Yellow(path))
                 elif enemy_type == "Pink":
                     enemy_list.append(Pink(path))
+                elif enemy_type == "Black":
+                    enemy_list.append(Black(path))
+                elif enemy_type == "White":
+                    enemy_list.append(White(path))
+                elif enemy_type == "Purple":
+                    enemy_list.append(Purple(path))
+                elif enemy_type == "Lead":
+                    enemy_list.append(Lead(path))
+                elif enemy_type == "Zebra":
+                    enemy_list.append(Zebra(path))
+                elif enemy_type == "Rainbow":
+                    enemy_list.append(Rainbow(path))
                 enemy_spawn_timer = wave["spawn_delay"]
             elif len(enemy_list) >= wave["amount"]:
                 # Move to the next wave

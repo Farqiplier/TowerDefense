@@ -1,5 +1,5 @@
 path = [(0, 300), (450, 300), (450, 150), (300, 150), (300, 600), (150, 600), (150, 450), (600, 450), (600, 300), (750, 300), (750, 600), (450, 600), (450, 900)]
-from enemy import Enemy, Red, Blue, Green, Yellow, Pink
+from enemy import Enemy, Red, Blue, Green, Yellow, Pink, Black, White, Purple, Lead, Zebra, Rainbow
 
 wave_1 = [
     {

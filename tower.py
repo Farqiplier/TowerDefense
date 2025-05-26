@@ -63,7 +63,7 @@ class LaserTower(Tower):
         super().__init__(x, y)
         self.color = (0, 0, 255)  # Blue color for laser
         self.price = 150
-        self.fire_rate = 0.1  # Continuous damage (10 times per second)
+        self.fire_rate = 100  # Continuous damage (10 times per second)
         self.damage_per_tick = 0.01  # Damage applied per tick
 
     def fire(self, enemies, current_time):

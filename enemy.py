@@ -84,3 +84,19 @@ class Lead(Enemy):
     def __init__(self, path):
         super().__init__(path, health=6, speed=1.0, money=60)
         self.color = (128, 128, 128)
+
+class Zebra(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=1.8, money=60)
+        self.color = (200, 200, 200)
+        
+class Rainbow(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=2.2, money=60)
+        self.color = (164, 196, 144 )
+
+class Ceramic(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=2.5, money=60)
+        self.color = (138, 102, 66)
+        
