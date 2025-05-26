@@ -1,6 +1,5 @@
 from projectiles import Projectile, CannonProjectile
 import pygame
-
 class Tower:
     def __init__(self, x, y):
         self.x = x
@@ -15,14 +14,13 @@ class Tower:
         self.last_shot_time = 0  # Time of the last shot
 
     def fire(self, enemies, current_time):
-        # Fire at the first enemy in range if enough time has passed since the last shot
         if current_time - self.last_shot_time >= 1 / self.fire_rate:
             for enemy in enemies:
                 distance = ((enemy.x - self.x)**2 + (enemy.y - self.y)**2)**0.5
                 if distance <= self.range:
                     projectile = Projectile(self.x, self.y, enemy, speed=5, damage=1, color=self.color)
                     self.projectiles.append(projectile)
-                    self.last_shot_time = current_time  # Update the last shot time
+                    self.last_shot_time = current_time
                     break
 
     def draw(self, screen):
@@ -34,8 +32,8 @@ class Tower:
         for projectile in self.projectiles[:]:
             projectile.move()
             if projectile.has_hit_target():
-                projectile.target.health -= projectile.damage
-                if projectile.target.health <= 0 and projectile.target in enemies:
+                is_dead = projectile.target.take_damage(projectile.damage)
+                if is_dead and projectile.target in enemies:
                     enemies.remove(projectile.target)
                 self.projectiles.remove(projectile)
             else:
@@ -44,9 +42,9 @@ class Tower:
 class ArrowTower(Tower):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.color = (255, 0, 0)
+        self.color = (255, 0, 0)  # Red color for arrow
         self.price = 75
-        self.fire_rate = 1  # 1 shot per second
+        self.fire_rate = 0.5  # 1 shot per second
         self.projectile_speed = 7
         self.projectile_damage = 1
 
@@ -63,21 +61,41 @@ class ArrowTower(Tower):
 class LaserTower(Tower):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.color = (0, 0, 255)
+        self.color = (0, 0, 255)  # Blue color for laser
         self.price = 150
-        self.fire_rate = 0.5  # 1 shot every 2 seconds
-        self.projectile_speed = 10
-        self.projectile_damage = 2
+        self.fire_rate = 0.1  # Continuous damage (10 times per second)
+        self.damage_per_tick = 0.01  # Damage applied per tick
+
+    def fire(self, enemies, current_time):
+        # Apply continuous damage to the first enemy in range
+        for enemy in enemies:
+            distance = ((enemy.x - self.x)**2 + (enemy.y - self.y)**2)**0.5
+            if distance <= self.range:
+                if current_time - self.last_shot_time >= 1 / self.fire_rate:
+                    is_dead = enemy.take_damage(self.damage_per_tick)
+                    if is_dead and enemy in enemies:
+                        enemies.remove(enemy)
+                    self.last_shot_time = current_time
+                break
+
+    def draw(self, screen, enemies):
+        super().draw(screen)
+        # Draw a laser beam to the first enemy in range
+        for enemy in enemies:
+            distance = ((enemy.x - self.x)**2 + (enemy.y - self.y)**2)**0.5
+            if distance <= self.range:
+                pygame.draw.line(screen, self.color, (self.x, self.y), (enemy.x, enemy.y), 2)
+                break
 
 class CannonTower(Tower):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.color = (0, 255, 0)
+        self.color = (0, 255, 0)  # Green color for cannon
         self.price = 200
         self.fire_rate = 0.25  # 1 shot every 4 seconds
         self.projectile_speed = 4
         self.projectile_damage = 5
-        self.explosion_radius = 300  # Radius of the explosion
+        self.explosion_radius = 100  # Radius of the explosion
 
     def fire(self, enemies, current_time):
         if current_time - self.last_shot_time >= 1 / self.fire_rate:
@@ -97,11 +115,12 @@ class CannonTower(Tower):
         for projectile in self.projectiles[:]:
             projectile.move()
             if isinstance(projectile, CannonProjectile) and projectile.has_hit_target():
-                projectile.explode(screen, enemies)  # Apply AoE damage and show explosion
+                # Let the explosion handle enemy removal
+                projectile.explode(screen, enemies)
                 self.projectiles.remove(projectile)
             elif projectile.has_hit_target():
-                projectile.target.health -= projectile.damage
-                if projectile.target.health <= 0 and projectile.target in enemies:
+                is_dead = projectile.target.take_damage(projectile.damage)
+                if is_dead and projectile.target in enemies:
                     enemies.remove(projectile.target)
                 self.projectiles.remove(projectile)
             else:

@@ -27,19 +27,19 @@ class Projectile:
 class CannonProjectile(Projectile):
     def __init__(self, x, y, target, speed, damage, color, explosion_radius):
         super().__init__(x, y, target, speed, damage, color)
-        self.explosion_radius = explosion_radius
+        self.explosion_radius = explosion_radius  # Radius of the explosion
 
     def explode(self, screen, enemies):
         # Draw explosion effect
         pygame.draw.circle(screen, (255, 165, 0), (int(self.x), int(self.y)), self.explosion_radius, 2)
-
-        # Deal AoE damage to all enemies within the explosion radius
-        for enemy in enemies[:]:
+        
+        # Deal AoE damage
+        for enemy in enemies[:]:  # Make a copy to iterate over
             distance = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
             if distance <= self.explosion_radius:
-                enemy.health -= self.damage
-                if enemy.health <= 0:
+                if enemy.take_damage(self.damage):  # Returns True if enemy dies
                     enemies.remove(enemy)
 
     def has_hit_target(self):
+        
         return super().has_hit_target()

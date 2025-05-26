@@ -1,26 +1,20 @@
 import pygame
 
 class Enemy:
-    def __init__(self, path):
-        self.path = path  # List of (x, y) tuples representing the path
-        self.x, self.y = self.path[0]  # Start at the first point in the path (centered)
+    def __init__(self, path, health, speed, money):
+        self.path = path
+        self.health = health
+        self.speed = speed
+        self.money = money  # Money earned when this enemy is killed
+        self.current_path_index = 0
+        self.x, self.y = self.path[self.current_path_index]
         self.width = 40
         self.height = 40
-        self.color = (255, 0, 0)  # Red color for the enemy
-        self.speed = 0.2  # Reduced speed to make the enemy slower
-        self.health = 3
-        self.current_path_index = 0
-        self.reward = 10
+        self.color = (255, 0, 0)  # Default color for enemies
         self.update_rect()
 
     def update_rect(self):
-        # Update the rect to ensure the position is centered
-        self.rect = pygame.Rect(
-            self.x - self.width // 2,
-            self.y - self.height // 2,
-            self.width,
-            self.height
-        )
+        self.rect = pygame.Rect(self.x - self.width // 2, self.y - self.height // 2, self.width, self.height)
 
     def move(self):
         if self.current_path_index < len(self.path) - 1:
@@ -29,11 +23,9 @@ class Enemy:
             distance = (dx**2 + dy**2)**0.5
 
             if distance <= self.speed:
-                # Move to the next point in the path
                 self.x, self.y = target_x, target_y
                 self.current_path_index += 1
             else:
-                # Move toward the next point
                 self.x += self.speed * dx / distance
                 self.y += self.speed * dy / distance
 
@@ -44,41 +36,51 @@ class Enemy:
 
     def take_damage(self, damage):
         self.health -= damage
-        if self.health <= 0:
-            return True  # Enemy is dead
-        return False
-
-
-class RedEnemy(Enemy):
+        return self.health <= 0  # This returns True if enemy should die
+class Red(Enemy):
     def __init__(self, path):
-        super().__init__(path)
-        self.color = (255, 0, 0)  # Red color for the enemy
-        self.health = 1  # Health of the red enemy
-        self.speed = 2  # Speed of the red enemy
-        self.money = 2  # Money given when the red enemy is killed
+        super().__init__(path, health=1, speed=1, money=10, )
+        self.color = (255, 0, 0)
 
 
-class BlueEnemy(Enemy):
+class Blue(Enemy):
     def __init__(self, path):
-        super().__init__(path)
-        self.color = (0, 0, 255)  # Blue color for the enemy
-        self.health = 2  # Health of the blue enemy
-        self.speed = 0.8  # Speed of the blue enemy
-        self.money = 4  # Money given when the red enemy is killed
+        super().__init__(path, health=2, speed=1.4, money=20)
+        self.color = (0, 0, 255)
 
-class GreenEnemy(Enemy):
+
+class Green(Enemy):
     def __init__(self, path):
-        super().__init__(path)
-        self.color = (0, 255, 0)  # Green color for the enemy
-        self.health = 3  # Health of the green enemy
-        self.speed = 0.6  # Speed of the green enemy
-        self.money = 6  # Money given when the red enemy is killed
+        super().__init__(path, health=3, speed=1.8, money=30)
+        self.color = (0, 255, 0)
 
 
-class YellowEnemy(Enemy):
+class Yellow(Enemy):
     def __init__(self, path):
-        super().__init__(path)
-        self.color = (255, 255, 0)  # Yellow color for the enemy
-        self.health = 4  # Health of the yellow enemy
-        self.speed = 0.4  # Speed of the yellow enemy
-        self.money = 8  # Money given when the red enemy is killed
+        super().__init__(path, health=5, speed=3.2, money=50)
+        self.color = (255, 255, 0)
+
+class Pink(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=3.5, money=60)
+        self.color = (255, 192, 203)
+
+class Black(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=1.8, money=60)
+        self.color = (5, 5, 5)
+
+class White(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=2.0, money=60)
+        self.color = (250, 250, 250)
+
+class Purple(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=3.0, money=60)
+        self.color = (160, 32, 240)
+
+class Lead(Enemy):
+    def __init__(self, path):
+        super().__init__(path, health=6, speed=1.0, money=60)
+        self.color = (128, 128, 128)

@@ -1,29 +1,32 @@
-path = [(0, 100), (200, 100), (200, 400), (600, 400), (600, 100), (600, 0)]
-from enemy import Enemy, RedEnemy, BlueEnemy, GreenEnemy, YellowEnemy
+path = [(0, 300), (450, 300), (450, 150), (300, 150), (300, 600), (150, 600), (150, 450), (600, 450), (600, 300), (750, 300), (750, 600), (450, 600), (450, 900)]
+from enemy import Enemy, Red, Blue, Green, Yellow, Pink
 
 wave_1 = [
     {
-        "type": "RedEnemy",         "path": path,   "amount": 5,
+        "type": "Pink",         "path": path,   "amount": 5,
         "delay_from_start": 0,      "spawn_delay": 0.75
     },
     {
-        "type": "RedEnemy",         "path": path,   "amount": 5,
-        "delay_from_start": 4,      "spawn_delay": 1
+        "type": "Red",         "path": path,   "amount": 5,
+        "delay_from_start": 3,      "spawn_delay": 1
     },
     {
-        "type": "BlueEnemy",        "path": path,   "amount": 5,
+        "type": "Blue",        "path": path,   "amount": 5,
         "delay_from_start": 10,     "spawn_delay": 1
     },
     {
-        "type": "BlueEnemy",        "path": path,   "amount": 5,
+        "type": "Blue",        "path": path,   "amount": 5,
         "delay_from_start": 15,     "spawn_delay": 1
     },
     {
-        "type": "GreenEnemy",       "path": path,   "amount": 5,
+        "type": "Green",       "path": path,   "amount": 5,
         "delay_from_start": 20,     "spawn_delay": 1
     },
     {
-        "type": "GreenEnemy",       "path": path,   "amount": 5,
+        "type": "Green",       "path": path,   "amount": 5,
         "delay_from_start": 25,     "spawn_delay": 1
-    }
+    },
+    # {
+    #     "type": 
+    # }
 ]

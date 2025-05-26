@@ -1,7 +1,0 @@
-1. Grid of gewoon collision
-2. Pad voor enemies
-3. Default enemy die pad volgt met attributen hp, snelheid
-4. Extra enemies (meer hp enemies, snellere enemies, tragere)
-5. Default toren, die een directe lijn tekent die van de toren naar de enemy gaat, wat 1dps doet
-6. Waves
-7. ???

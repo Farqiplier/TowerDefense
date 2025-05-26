@@ -1,0 +1,14 @@
+1.  Route voor enemies maken
+2.  Enemies zonder eigenschappen laten padvolgen
+3.  Eigenschappen en attributen voor enemies maken
+4.  Instelbare waves toegevoegen voor enemies
+5.  Simpele toren laten werken en hun eigenschappen geven 
+6.  torens kunnen de enemies hitten en doden
+7.  Meerdere torens toevoegen
+8.  Verschillende projectiles
+9.  Enemies healthbar geven
+10. Meer soorten projectiles met verschillend gedrag
+11. Menu gemaakt om torens mooi te kunnen plaatsen
+12. Wave counter tower tonen
+13. Toren upgrades
+14. Sterkere en meer enemies

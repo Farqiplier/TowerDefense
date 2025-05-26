@@ -1,7 +1,9 @@
+from turtle import pos
+from anyio import Path
 import pygame
 import sys
 from tower import ArrowTower, LaserTower, CannonTower
-from enemy import RedEnemy, BlueEnemy, GreenEnemy, YellowEnemy
+from enemy import Red, Blue, Green, Yellow, Pink
 from enemy_list import wave_1, path
 from menu import Menu
 
@@ -12,16 +14,18 @@ pygame.init()
 screen_width, screen_height = 900, 900
 
 # Colors
-white = (255, 255, 255)
+White = (255, 255, 255)
+Dark_Green = (0, 200, 0)
 black = (0, 0, 0)
-
+Path_color = (150, 150, 150)
+Red_color = (255, 0, 0)
 # Create the screen
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Tower Defense")
 
 # Define the path
 path_line_amount = len(path) - 1
-path_thickness = 8
+path_thickness = 30
 
 # Player health and money
 player_health = 100
@@ -36,7 +40,7 @@ enemy_spawn_timer = 0
 wave_start_time = pygame.time.get_ticks() / 1000  # Start time in seconds
 
 # Initialize the menu with $300 starting money
-menu = Menu(screen, money=300)
+menu = Menu(screen, money=3000)
 
 # Towers list
 towers = []
@@ -75,11 +79,15 @@ while running:
                         menu.preview_tower = None  # Clear the preview
 
     # Fill the screen with white
-    screen.fill(white)
+    screen.fill(Dark_Green)
 
     # Draw the path
     for i in range(path_line_amount):
-        pygame.draw.line(screen, black, path[i], path[i + 1], path_thickness)
+
+        pos_1_x, pos_1_y = path[i]
+        pos_2_x, pos_2_y = path[i + 1]
+        pygame.draw.line(screen, Path_color, (pos_1_x - (path_thickness // 2), pos_1_y), (pos_2_x  + (path_thickness // 2), pos_2_y), path_thickness)
+        pygame.draw.line(screen, Red_color, (pos_1_x, pos_1_y), (pos_2_x, pos_2_y), path_thickness)
 
     # Spawn enemies based on wave_1
     if wave_index < len(wave_1):
@@ -88,14 +96,16 @@ while running:
             if enemy_spawn_timer <= 0 and len(enemy_list) < wave["amount"]:
                 # Spawn an enemy
                 enemy_type = wave["type"]
-                if enemy_type == "RedEnemy":
-                    enemy_list.append(RedEnemy(path))
-                elif enemy_type == "BlueEnemy":
-                    enemy_list.append(BlueEnemy(path))
-                elif enemy_type == "GreenEnemy":
-                    enemy_list.append(GreenEnemy(path))
-                elif enemy_type == "YellowEnemy":
-                    enemy_list.append(YellowEnemy(path))
+                if enemy_type == "Red":
+                    enemy_list.append(Red(path))
+                elif enemy_type == "Blue":
+                    enemy_list.append(Blue(path))
+                elif enemy_type == "Green":
+                    enemy_list.append(Green(path))
+                elif enemy_type == "Yellow":
+                    enemy_list.append(Yellow(path))
+                elif enemy_type == "Pink":
+                    enemy_list.append(Pink(path))
                 enemy_spawn_timer = wave["spawn_delay"]
             elif len(enemy_list) >= wave["amount"]:
                 # Move to the next wave
@@ -105,7 +115,7 @@ while running:
                 enemy_spawn_timer -= delta_time  # Decrease timer using delta_time
 
     # Move and draw enemies
-    for enemy in enemy_list[:]:
+    for enemy in enemy_list[:]:  # Create a copy for iteration
         enemy.move()
         enemy.draw(screen)
 
@@ -116,9 +126,15 @@ while running:
 
     # Update and draw towers
     for tower in towers:
-        tower.fire(enemy_list, current_time)  # Pass current_time to respect fire rate
+        tower.fire(enemy_list, current_time)
         tower.update_projectiles(screen, enemy_list)
         tower.draw(screen)
+
+    # Clean up dead enemies and award money
+    for enemy in enemy_list[:]:
+        if enemy.health <= 0:
+            menu.money += enemy.money
+            enemy_list.remove(enemy)
 
     # Display player health
     health_text = font.render(f"Health: {player_health}", True, black)
