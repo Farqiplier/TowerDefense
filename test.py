@@ -1,6 +1,6 @@
 import pygame  # Import the pygame library for game development
 import sys  # Import sys for system-specific parameters and functions
-from tower import ArrowTower, LaserTower, CannonTower  # Import tower classes
+from tower import ArrowTower, LaserTower, CannonTower, IceTower  # Import tower classes
 from enemy import Red, Blue, Green, Yellow, Pink, Black, White, Purple, Lead, Zebra, Rainbow, Ceramic, MOAB  # Import enemy classes
 from enemy_info import wave_1, path  # Import predefined enemy waves and path
 from menu import Menu  # Import the menu class for handling UI
@@ -74,6 +74,9 @@ while running:
                             towers.append(LaserTower(event.pos[0], event.pos[1]))
                         elif tower_type == "Cannon Tower":
                             towers.append(CannonTower(event.pos[0], event.pos[1]))
+                        elif tower_type == "Ice Tower":
+                            towers.append(IceTower(event.pos[0], event.pos[1]))
+
                         menu.money -= menu.preview_tower["price"]  # Deduct the tower's price from the player's money
                         menu.preview_tower = None  # Clear the preview
 
@@ -138,7 +141,7 @@ while running:
     # Update and draw towers
     for tower in towers:  # Iterate through all placed towers
         tower.fire(enemy_list, current_time)  # Fire projectiles at enemies
-        tower.update_projectiles(screen, enemy_list)  # Update and draw projectiles
+        tower.update_projectiles(screen, enemy_list, time_started)  # Update and draw projectiles
         tower.draw(screen, enemy_list)  # Draw the tower
 
     # Clean up dead enemies and spawn children

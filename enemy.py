@@ -14,6 +14,7 @@ class Enemy:
         self.width = 40
         self.height = 50
         self.contains = contains
+        self.radius = 20
 
         # Load the image for the enemy from the 'bloons' folder
         image_path = os.path.join("bloons", f"{bloon_type}.png")
