@@ -1,6 +1,21 @@
 from projectiles import Projectile, CannonProjectile
 import pygame
 
+
+tower_menu_info = {
+    "Arrow Tower": {
+        "color": (255, 0, 0),  # Red color
+        "price": 75
+    },
+    "Laser Tower": {
+        "color": (0, 0, 255),  # Blue color
+        "price": 150
+    },
+    "Cannon Tower": {
+        "color": (0, 255, 0),  # Green color
+        "price": 200
+    }
+}
 # Base class for all towers
 class Tower:
     def __init__(self, x, y):
@@ -18,14 +33,11 @@ class Tower:
 
     # Method to fire projectiles at enemies within range
     def fire(self, enemies, current_time):
-        # Check if enough time has passed since the last shot
-        if current_time - self.last_shot_time >= 1 / self.fire_rate:
+        if current_time - self.last_shot_time >= 1 / self.fire_rate:    # Check if enough time has passed since the last shot
             for enemy in enemies:
-                # Calculate distance to the enemy
-                distance = ((enemy.x - self.x)**2 + (enemy.y - self.y)**2)**0.5
-                # If the enemy is within range, fire a projectile
-                if distance <= self.range:
-                    projectile = Projectile(self.x, self.y, enemy, speed=5, damage=1, color=self.color)
+                distance = ((enemy.x - self.x)**2 + (enemy.y - self.y)**2)**0.5     # Calculate distance to the enemy
+                if distance <= self.range:      # If the enemy is within range, fire a projectile
+                    projectile = Projectile(self.x, self.y, enemy, speed=self.projectile_speed, damage=self.projectile_damage, color=self.color)
                     self.projectiles.append(projectile)  # Add projectile to the list
                     self.last_shot_time = current_time  # Update the last shot time
                     break  # Fire at only one enemy per shot
@@ -54,11 +66,6 @@ class Tower:
 class ArrowTower(Tower):
     def __init__(self, x, y):
         super().__init__(x, y)  # Initialize base tower attributes
-        self.color = (255, 0, 0)  # Red color for arrow tower
-        self.price = 75  # Cost of the arrow tower
-        self.fire_rate = 0.5  # Fire rate (2 shots per second)
-        self.projectile_speed = 7  # Speed of the arrow projectiles
-        self.projectile_damage = 1  # Damage dealt by each arrow projectile
 
     # Override the fire method to customize projectile attributes
     def fire(self, enemies, current_time):
@@ -77,8 +84,8 @@ class LaserTower(Tower):
         super().__init__(x, y)  # Initialize base tower attributes
         self.color = (0, 0, 255)  # Blue color for laser tower
         self.price = 150  # Cost of the laser tower
-        self.fire_rate = 100  # Continuous damage (10 times per second)
-        self.damage_per_tick = 0.1  # Damage applied per tick
+        self.fire_rate = 3  # Continuous damage (10 times per second)
+        self.damage_per_tick = 1 # Damage applied per tick
 
     # Override the fire method to apply continuous damage
     def fire(self, enemies, current_time):
@@ -88,8 +95,8 @@ class LaserTower(Tower):
                 # Apply damage continuously to the first enemy in range
                 if current_time - self.last_shot_time >= 1 / self.fire_rate:
                     is_dead = enemy.take_damage(self.damage_per_tick)
-                    if is_dead and enemy in enemies:
-                        enemies.remove(enemy)  # Remove the enemy if it is dead
+                    # if is_dead and enemy in enemies:
+                    #     enemies.remove(enemy)  # Remove the enemy if it is dead
                     self.last_shot_time = current_time
                 break
 
@@ -109,6 +116,7 @@ class CannonTower(Tower):
         super().__init__(x, y)  # Initialize base tower attributes
         self.color = (0, 255, 0)  # Green color for cannon tower
         self.price = 200  # Cost of the cannon tower
+        # self.fire_rate = 0.50  # Fire rate (1 shot every 2 seconds)
         self.fire_rate = 0.50  # Fire rate (1 shot every 2 seconds)
         self.projectile_speed = 4  # Speed of the cannon projectiles
         self.projectile_damage = 5  # Damage dealt by each cannon projectile
@@ -136,6 +144,7 @@ class CannonTower(Tower):
             if isinstance(projectile, CannonProjectile) and projectile.has_hit_target():
                 # Handle explosion and enemy removal
                 projectile.explode(screen, enemies)
+                
                 self.projectiles.remove(projectile)  # Remove the projectile after explosion
             elif projectile.has_hit_target():
                 is_dead = projectile.target.take_damage(projectile.damage)  # Apply damage to the target

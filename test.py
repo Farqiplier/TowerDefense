@@ -2,7 +2,7 @@ import pygame  # Import the pygame library for game development
 import sys  # Import sys for system-specific parameters and functions
 from tower import ArrowTower, LaserTower, CannonTower  # Import tower classes
 from enemy import Red, Blue, Green, Yellow, Pink, Black, White, Purple, Lead, Zebra, Rainbow, Ceramic, MOAB  # Import enemy classes
-from enemy_list import wave_1, path  # Import predefined enemy waves and path
+from enemy_info import wave_1, path  # Import predefined enemy waves and path
 from menu import Menu  # Import the menu class for handling UI
 
 # Initialize pygame
@@ -12,9 +12,9 @@ pygame.init()
 screen_width, screen_height = 900, 900  # Define the width and height of the game window
 
 # Colors
-White = (255, 255, 255)  # RGB value for white color
-Dark_Green = (0, 200, 0)  # RGB value for dark green color (background)
-black = (0, 0, 0)  # RGB value for black color
+WHITE = (255, 255, 255)  # RGB value for wHITE color
+DARK_GREEN = (0, 200, 0)  # RGB value for dark green color (background)
+BLACK = (0, 0, 0)  # RGB value for BLACK color
 Path_color = (150, 150, 150)  # RGB value for path color
 
 # Create the screen
@@ -50,7 +50,7 @@ clock = pygame.time.Clock()  # Create a clock object to control frame rate
 running = True
 while running:
     # Limit the frame rate to 60 FPS and calculate delta_time
-    delta_time = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
+    time_started = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
     current_time = pygame.time.get_ticks() / 1000.0  # Current time in seconds
 
     mouse_pos = pygame.mouse.get_pos()  # Get the current mouse position
@@ -78,7 +78,7 @@ while running:
                         menu.preview_tower = None  # Clear the preview
 
     # Fill the screen with the background color
-    screen.fill(Dark_Green)
+    screen.fill(DARK_GREEN)
 
     # Draw the path
     for i in range(path_line_amount):  # Iterate through the path points
@@ -101,10 +101,10 @@ while running:
                     enemy_list.append(Yellow(path))
                 elif enemy_type == "Pink":
                     enemy_list.append(Pink(path))
-                elif enemy_type == "Black":
-                    enemy_list.append(Black(path))
-                elif enemy_type == "White":
-                    enemy_list.append(White(path))
+                elif enemy_type == "BLACK":
+                    enemy_list.append(BLACK(path))
+                elif enemy_type == "WHITE":
+                    enemy_list.append(WHITE(path))
                 elif enemy_type == "Purple":
                     enemy_list.append(Purple(path))
                 elif enemy_type == "Lead":
@@ -122,7 +122,7 @@ while running:
                 wave_index += 1  # Move to the next wave
                 wave_start_time = current_time  # Update the wave start time
             else:
-                enemy_spawn_timer -= delta_time  # Decrease the spawn timer using delta_time
+                enemy_spawn_timer -= time_started  # Decrease the spawn timer using delta_time
 
     # Move and draw enemies
     for enemy in enemy_list[:]:  # Create a copy of the enemy list for iteration
@@ -133,6 +133,7 @@ while running:
         if enemy.current_path_index == len(path) - 1:
             player_health -= enemy.health  # Decrease player's health based on enemy's health
             enemy_list.remove(enemy)  # Remove the enemy from the list
+            menu.money += enemy.money  # Add money for the enemy that reached the end
 
     # Update and draw towers
     for tower in towers:  # Iterate through all placed towers
@@ -143,13 +144,12 @@ while running:
     # Clean up dead enemies and spawn children
     for enemy in enemy_list[:]:  # Iterate through the enemy list
         if enemy.health <= 0:  # Check if the enemy is dead
-            children = enemy.pop()  # Spawn children bloons
-            enemy_list.extend(children)  # Add children to the enemy list
             menu.money += enemy.money  # Add money for the destroyed enemy
+            enemy.destroyed(enemy_list)  # Destroy the enemy
             enemy_list.remove(enemy)  # Remove the dead enemy
 
     # Display player health
-    health_text = font.render(f"Health: {player_health}", True, black)  # Render the health text
+    health_text = font.render(f"Health: {player_health}", True, BLACK)  # Render the health text
     screen.blit(health_text, (50, 10))  # Draw the health text on the screen
 
     # Draw the menu and the player's money

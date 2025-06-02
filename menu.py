@@ -1,4 +1,5 @@
 import pygame
+from tower import tower_menu_info
 
 class Menu:
     def __init__(self, screen, money):
@@ -6,13 +7,18 @@ class Menu:
         self.money = money
         self.font = pygame.font.Font(None, 36)
         self.towers = [
-            {"name": "Arrow Tower", "price": 75, "color": (255, 0, 0), "x": 50, "y": 800},
-            {"name": "Laser Tower", "price": 150, "color": (0, 0, 255), "x": 150, "y": 800},
-            {"name": "Cannon Tower", "price": 200, "color": (0, 255, 0), "x": 250, "y": 800},
+            {
+            "name": tower_name,
+            "price": tower_data["price"],
+            "color": tower_data["color"],
+            "x": 50 + index * 100,
+            "y": 800,
+            }
+            for index, (tower_name, tower_data) in enumerate(tower_menu_info.items())
         ]
         self.selected_tower = None
         self.preview_tower = None  # Holds the preview tower's data
-
+        
     def draw_menu(self):
         # Draw the menu background
         pygame.draw.rect(self.screen, (200, 200, 200), (0, 750, 900, 150))

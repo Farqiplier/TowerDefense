@@ -34,11 +34,11 @@ class CannonProjectile(Projectile):
         pygame.draw.circle(screen, (255, 165, 0), (int(self.x), int(self.y)), self.explosion_radius, 2)
         
         # Deal AoE damage
-        for enemy in enemies[:]:  # Make a copy to iterate over
+        for enemy in enemies:  # Iterate over enemies
             distance = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
             if distance <= self.explosion_radius:
-                if enemy.take_damage(self.damage):  # Returns True if enemy dies
-                    enemies.remove(enemy)
+                enemy.take_damage(self.damage)  # Apply damage without removing
+                    
 
     def has_hit_target(self):
         
