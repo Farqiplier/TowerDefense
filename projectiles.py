@@ -1,180 +1,248 @@
 # projectiles.py
 import pygame
 import math
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
+from enemy import Lead # Ensure Lead is imported if needed for specific checks
 
 class Projectile:
-    def __init__(self, x: float, y: float, target: Any, **kwargs):
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
         """
-        Base projectile class with all BTD6-like properties
-        
+        Base projectile class with BTD6-like properties
+
         Args:
             x, y: Starting position
-            target: Target enemy
-            kwargs: Any projectile property (see below)
+            target_pos: Position target was at when fired (static target)
+            kwargs: Any projectile property like speed, damage, pierce etc.
         """
         # Core properties
         self.x = x
         self.y = y
-        self.target = target
+        self.start_pos = (x, y)
+        self.target_pos = target_pos  # Stores position target was at when fired
         self.speed = kwargs.get('speed', 5)
         self.damage = kwargs.get('damage', 1)
         self.pierce = kwargs.get('pierce', 1)
+        self.max_pierce = self.pierce # Keep original pierce count
         self.lifespan = kwargs.get('lifespan', 2.0)  # seconds
-        self.age = 0
-        
-        # Bloon properties
+        self.age = 0.0 # Current age of the projectile in seconds
+        self.distance_traveled = 0.0 # Total distance moved
+        self.max_distance = kwargs.get('max_distance', float('inf')) # Max distance before expiring
+
+        # Bloon properties affecting what it can pop
         self.can_pop_lead = kwargs.get('can_pop_lead', False)
         self.can_pop_camo = kwargs.get('can_pop_camo', False)
-        
+
         # Behavior flags
-        self.homing = kwargs.get('homing', False)
-        self.aoe_radius = kwargs.get('aoe_radius', 0)
-        self.turn_rate = kwargs.get('turn_rate', 0.1) if self.homing else 0
-        
+        self.homing = kwargs.get('homing', False) # True if projectile tracks moving targets
+        self.aoe_radius = kwargs.get('aoe_radius', 0) # Area of Effect radius
+        self.turn_rate = kwargs.get('turn_rate', 0.1) if self.homing else 0.0 # How fast homing projectiles can turn
+
         # Visuals
-        self.color = kwargs.get('color', (255, 0, 0))
-        self.radius = kwargs.get('radius', 5)
-        self.trail_length = kwargs.get('trail_length', 0)
-        self.trail_points = []
-        
-        # Special effects
+        self.color = kwargs.get('color', (255, 0, 0)) # Default red color
+        self.radius = kwargs.get('radius', 5) # Visual radius for drawing
+        self.trail_length = kwargs.get('trail_length', 0) # Number of past positions to store for a trail
+        self.trail_points = [] # List to store trail coordinates
+
+        # Special effects to apply on hit
         self.on_hit_effects = kwargs.get('on_hit_effects', [])
+        # Projectiles to spawn on hit (e.g., sticky bomb)
         self.spawn_on_hit = kwargs.get('spawn_on_hit', [])
+        # Projectiles/effects to spawn when projectile expires/dies
         self.spawn_on_death = kwargs.get('spawn_on_death', [])
-        
-        # Movement
+
+        # Movement: Initial velocity vector
         self.velocity = self._calculate_initial_velocity()
-        
+        self.direction = math.atan2(self.velocity[1], self.velocity[0]) # Angle of movement
+
     def _calculate_initial_velocity(self):
-        """Calculate direction toward target"""
-        if self.target:
-            dx = self.target.x - self.x
-            dy = self.target.y - self.y
-            dist = max(1, math.sqrt(dx*dx + dy*dy))
-            return [dx/dist * self.speed, dy/dist * self.speed]
-        return [0, 0]
-    
+        """Calculate initial direction vector towards the target position."""
+        dx = self.target_pos[0] - self.x
+        dy = self.target_pos[1] - self.y
+        dist = max(1.0, math.sqrt(dx*dx + dy*dy)) # Avoid division by zero
+        return [dx/dist * self.speed, dy/dist * self.speed]
+
     def move(self, dt: float):
-        """Update position with optional homing behavior"""
-        self.age += dt
+        """
+        Update projectile's position based on its velocity and delta time.
+        If homing, adjust velocity towards the current target.
+        """
+        self.age += dt # Increase age
         
-        if self.homing and self.target:
-            # Adjust direction toward target
-            dx = self.target.x - self.x
-            dy = self.target.y - self.y
-            dist = max(1, math.sqrt(dx*dx + dy*dy))
-            
-            target_vx = dx/dist * self.speed
-            target_vy = dy/dist * self.speed
-            
-            self.velocity[0] += (target_vx - self.velocity[0]) * self.turn_rate
-            self.velocity[1] += (target_vy - self.velocity[1]) * self.turn_rate
-            
-            # Normalize
-            vel_mag = math.sqrt(self.velocity[0]**2 + self.velocity[1]**2)
-            if vel_mag > 0:
-                self.velocity[0] = self.velocity[0]/vel_mag * self.speed
-                self.velocity[1] = self.velocity[1]/vel_mag * self.speed
-        
-        self.x += self.velocity[0] * dt * 60  # dt is in seconds, convert to frames
+        # Calculate distance moved in this frame
+        dist_moved_this_frame = self.speed * dt * 60 # Assuming 60 FPS for simplicity; dt is in seconds
+        self.distance_traveled += dist_moved_this_frame
+
+        self.x += self.velocity[0] * dt * 60 # Convert dt (seconds) to frames by multiplying by FPS (60)
         self.y += self.velocity[1] * dt * 60
-        
+
+        # Update trail points if trail_length is configured
         if self.trail_length > 0:
             self.trail_points.append((self.x, self.y))
             if len(self.trail_points) > self.trail_length:
-                self.trail_points.pop(0)
-    
-    def has_hit_target(self) -> bool:
-        """Check if projectile reached target"""
-        if not self.target:
-            return True
-            
-        distance = math.sqrt((self.target.x - self.x)**2 + (self.target.y - self.y)**2)
-        return distance < max(10, self.target.radius)
-    
+                self.trail_points.pop(0) # Remove oldest point if trail is too long
+
+    def check_collision(self, enemies: List[Any]) -> Optional[Any]:
+        """
+        Check for collision with any enemy in the provided list.
+        Uses line-circle intersection for accurate path collision.
+        Returns the first enemy hit (and valid) or None.
+        """
+        # Define the line segment for collision check
+        line_start = self.start_pos # Projectile's starting point
+        line_end = (self.x, self.y) # Projectile's current point
+
+        # If the projectile hasn't moved yet, no line segment exists for collision
+        if line_start == line_end:
+            return None
+
+        # Calculate vector for the line segment
+        line_vec = (line_end[0] - line_start[0], line_end[1] - line_start[1])
+        line_len_sq = line_vec[0]**2 + line_vec[1]**2
+        if line_len_sq == 0: # Line has zero length, no collision possible
+            return None
+
+        for enemy in enemies:
+            # Skip if the enemy cannot be popped by this projectile type
+            if (isinstance(enemy, Lead) and not self.can_pop_lead) or \
+               (getattr(enemy, 'camo', False) and not self.can_pop_camo):
+                continue
+
+            # Vector from line start to enemy center
+            enemy_vec = (enemy.x - line_start[0], enemy.y - line_start[1])
+
+            # Calculate the projection of enemy_vec onto line_vec
+            t = (enemy_vec[0] * line_vec[0] + enemy_vec[1] * line_vec[1]) / line_len_sq
+
+            # Clamp t to [0, 1] to ensure the closest point is within the line segment
+            t = max(0.0, min(1.0, t))
+
+            # Find the closest point on the line segment to the enemy center
+            closest_point_x = line_start[0] + t * line_vec[0]
+            closest_point_y = line_start[1] + t * line_vec[1]
+
+            # Calculate distance from the closest point to the enemy center
+            dist_sq = (enemy.x - closest_point_x)**2 + (enemy.y - closest_point_y)**2
+            combined_radius = enemy.radius + self.radius
+
+            # If distance is within combined radii, a collision occurred
+            if dist_sq <= combined_radius**2:
+                return enemy # Return the enemy that was hit
+        return None # No collision found
+
     def should_expire(self) -> bool:
-        """Check if projectile should be removed"""
-        return self.age >= self.lifespan or self.pierce <= 0
-    
+        """
+        Check if the projectile should be removed from the game (e.g., out of pierce,
+        reached max age, or traveled max distance).
+        """
+        return self.pierce <= 0 or self.age >= self.lifespan or self.distance_traveled >= self.max_distance
+
     def draw(self, screen):
-        """Draw projectile with optional trail"""
+        """
+        Draw the projectile on the screen, including its trail if configured.
+        """
+        # Draw projectile trail
         if self.trail_length > 0 and len(self.trail_points) > 1:
             pygame.draw.lines(screen, self.color, False, self.trail_points, 1)
-        
+
+        # Draw the projectile itself
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
-    
+
     def apply_effects(self, enemy):
-        """Apply any on-hit effects to enemy"""
+        """
+        Apply any configured on-hit effects to the enemy.
+        """
         for effect in self.on_hit_effects:
             if effect == 'slow':
-                enemy.speed *= 0.5  # Slow by 50%
+                # Apply slow effect, store original speed if not already done
+                if not hasattr(enemy, 'original_speed'):
+                    enemy.original_speed = enemy.speed
+                enemy.speed = enemy.original_speed * 0.5 # Halve speed
             elif effect == 'stun':
-                enemy.stun_duration = 1.0
-            # Add more effects as needed
+                # Apply stun effect (e.g., set a stun duration)
+                enemy.stun_duration = 1.0 # Stun for 1 second
+
+class DartProjectile(Projectile):
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A basic dart projectile, fast and single target.
+        """
+        super().__init__(x, y, target_pos, **kwargs) # Pass all kwargs to super
+
+class TackProjectile(Projectile):
+    # Constructor updated to match the base Projectile signature
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A short-range projectile for the Tack Shooter, fired in radial patterns.
+        The target_pos is calculated by the TackShooter itself to determine direction.
+        """
+        # Pass all kwargs to the superclass. Specific properties are set in tower.py's config.
+        super().__init__(x, y, target_pos, **kwargs)
 
 class CannonProjectile(Projectile):
-    def __init__(self, x: float, y: float, target: Any, **kwargs):
-        super().__init__(x, y, target, **kwargs)
-        self.explosion_radius = kwargs.get('explosion_radius', 100)
-        self.arc_height = kwargs.get('arc_height', 50)
-        self.gravity = kwargs.get('gravity', 0.5)
-        self.initial_y = y
-        self.vertical_velocity = -self.arc_height  # Initial upward velocity
-        
-    def move(self, dt: float):
-        """Arcing movement with gravity"""
-        self.age += dt
-        
-        # Horizontal movement (same as base)
-        self.x += self.velocity[0] * dt * 60
-        
-        # Vertical movement with gravity
-        self.vertical_velocity += self.gravity
-        self.y += self.vertical_velocity * dt * 60
-        
-        # Trail for arcing projectiles
-        if self.trail_length > 0:
-            self.trail_points.append((self.x, self.y))
-            if len(self.trail_points) > self.trail_length:
-                self.trail_points.pop(0)
-    
-    def explode(self, screen, enemies: List):
-        """Handle AOE explosion damage"""
-        if self.aoe_radius > 0:
-            # Draw explosion
-            pygame.draw.circle(screen, (255, 165, 0), (int(self.x), int(self.y)), self.explosion_radius, 1)
-            
-            # Damage all enemies in radius
-            for enemy in enemies[:]:
-                dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
-                if dist <= self.explosion_radius:
-                    enemy.take_damage(self.damage)
-                    self.apply_effects(enemy)
-        
-        # Spawn sub-projectiles if configured
-        for proj_config in self.spawn_on_death:
-            # Implementation would create new projectiles here
-            pass
+    # Constructor updated to correctly handle kwargs without conflicts and simplify behavior
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A large, black projectile that deals AOE damage upon impact.
+        Simplified to move in a straight line, without arcing.
+        """
+        # Pass all properties via kwargs to the superclass.
+        super().__init__(x, y, target_pos, **kwargs)
+        # Ensure specific properties are retrieved from kwargs, or use default if not provided
+        self.explosion_radius = kwargs.get('explosion_radius', 80)
+        self.aoe_radius = kwargs.get('aoe_radius', 0) 
 
-class LaserBeam:
-    """Special continuous damage projectile"""
-    def __init__(self, source, target, damage_per_sec: float):
-        self.source = source
-        self.target = target
-        self.damage_per_sec = damage_per_sec
-        self.active = True
-        self.color = (0, 0, 255)
-        
-    def update(self, dt: float):
-        """Apply damage over time"""
+    def move(self, dt: float):
+        """
+        Cannon projectile now moves in a straight line, like a regular projectile.
+        No custom arc trajectory.
+        """
+        super().move(dt) # Call the base Projectile's move method
+
+    def explode(self, screen, enemies: List[Any]):
+        """
+        Handles the Area of Effect (AOE) explosion damage for the cannon projectile.
+        """
+        if self.aoe_radius > 0:
+            # Draw a visual representation of the explosion
+            pygame.draw.circle(screen, (255, 165, 0), (int(self.x), int(self.y)), self.explosion_radius, 2) # Orange outline
+
+            # Damage all enemies within the explosion radius
+            for enemy in enemies:
+                dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
+                if dist <= self.aoe_radius: # Use aoe_radius for damage application
+                    enemy.take_damage(self.damage)
+                    self.apply_effects(enemy) # Apply effects from the cannon shot
+
+class HitscanProjectile:
+    """
+    Special projectile type for instant hits (e.g., Sniper Monkey).
+    It does not move; it applies damage immediately upon creation.
+    """
+    def __init__(self, source: Any, target: Any, **kwargs):
+        self.source = source # The tower that fired it
+        self.target = target # The enemy hit
+        self.damage = kwargs.get('damage', 1)
+        self.can_pop_lead = kwargs.get('can_pop_lead', False)
+        self.can_pop_camo = kwargs.get('can_pop_camo', False)
+        self.on_hit_effects = kwargs.get('on_hit_effects', [])
+
+    def apply_hit(self):
+        """
+        Immediately apply damage and effects to the target.
+        This is called directly by the tower, not in a projectile update loop.
+        """
         if self.target:
-            self.target.take_damage(self.damage_per_sec * dt)
-        else:
-            self.active = False
-    
-    def draw(self, screen):
-        if self.target:
-            pygame.draw.line(screen, self.color, 
-                           (self.source.x, self.source.y),
-                           (self.target.x, self.target.y), 2)
+            # Check if the target can be popped by this hitscan type
+            if (isinstance(self.target, Lead) and not self.can_pop_lead) or \
+               (getattr(self.target, 'camo', False) and not self.can_pop_camo):
+                # If target can't be popped, no damage/effects are applied
+                return
+
+            self.target.take_damage(self.damage)
+            for effect in self.on_hit_effects:
+                if effect == 'slow':
+                    if not hasattr(self.target, 'original_speed'):
+                        self.target.original_speed = self.target.speed
+                    self.target.speed = self.target.original_speed * 0.5
+                elif effect == 'stun':
+                    self.target.stun_duration = 1.0

@@ -3,7 +3,7 @@ from enemy import Enemy, Red, Blue, Green, Yellow, Pink, Black, White, Purple, L
 
 wave_1 = [
     {
-        "type": "MOAB",         "path": path,   "amount": 1,
+        "type": "Green",         "path": path,   "amount": 10,
         "delay_from_start": 0,      "spawn_delay": 0.75
     },
     {
