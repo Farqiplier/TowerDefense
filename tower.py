@@ -18,7 +18,7 @@ tower_menu_info = {
     },
     "Dartling Gunner": {
         "color": (150, 75, 0),
-        "price": 500,
+        "price": 850,
         "radius": 35  # Bigger than normal
     },
     "Ice Tower": {
