@@ -1,4 +1,4 @@
-from projectiles import Projectile, DartProjectile, CannonProjectile, TackProjectile, HitscanProjectile
+from projectiles import Projectile, DartProjectile, CannonProjectile, TackProjectile, HitscanProjectile, SpikeProjectile, CrossbowProjectile, BladeProjectile, RocketProjectile
 import pygame
 import math
 import random
@@ -40,18 +40,18 @@ tower_menu_info = {
 # Each upgrade dictionary includes a 'name', 'price', and a 'stats_effect' dictionary
 # for direct attribute changes. Special effects are handled within apply_upgrade.
 UPGRADES = {
-    "Dart Monkey": {
+    "DartMonkey": {
         # Path 1: Sharp Shots / Razor Sharp Shots / Spike-o-pult
         1: {
-            1: {"name": "Sharp Shots", "price": 100, "stats_effect": {'pierce': 1}}, # Total pierce 2 -> 3
-            2: {"name": "Razor Sharp Shots", "price": 150, "stats_effect": {'pierce': 2}}, # Total pierce 3 -> 5
-            3: {"name": "Spike-o-pult", "price": 400, "stats_effect": {'pierce': 17, 'fire_rate_multiplier': 1.15, 'projectile_radius': 15, 'damage': 1, 'projectile_type': 'SpikeProjectile'}}, # New projectile type, total pierce 5 -> 22, attack speed 0.95s -> 1.15s, +1 damage
+            1: {"name": "Sharp Shots", "price": 100, "stats_effect": {'pierce': 1}}, # Total pierce 2
+            2: {"name": "Razor Sharp Shots", "price": 150, "stats_effect": {'pierce': 2}}, # Total pierce 4
+            3: {"name": "Spike-o-pult", "price": 400, "stats_effect": {'pierce': 22, 'fire_rate_multiplier': 1.25, 'projectile_radius': 15, 'damage': 1, 'projectile_type': 'SpikeProjectile'}}, # New projectile type, pierce 22, attack speed 0.95s -> 1.1875s (slower), +1 damage
         },
         # Path 2: Quick Shots / Very Quick Shots / Triple Shots
         2: {
             1: {"name": "Quick Shots", "price": 120, "stats_effect": {'fire_rate_multiplier': 0.85}}, # 15% faster (0.95 -> 0.8075)
-            2: {"name": "Very Quick Shots", "price": 180, "stats_effect": {'fire_rate_multiplier': 0.67}}, # 33% faster (0.8075 -> 0.456)
-            3: {"name": "Triple Shot", "price": 800, "stats_effect": {'num_projectiles': 3, 'fire_rate_multiplier': 0.75}}, # Fires 3 darts, attack speed 0.456 -> 0.606
+            2: {"name": "Very Quick Shots", "price": 180, "stats_effect": {'fire_rate_multiplier': 0.67}}, # 33% faster (0.8075 -> 0.54)
+            3: {"name": "Triple Shot", "price": 800, "stats_effect": {'num_projectiles': 2, 'fire_rate_multiplier': 0.75}}, # Fires 3 darts, attack speed 0.54 -> 0.405
         },
         # Path 3: Long Range Darts / Enhanced Eyesight / Crossbow
         3: {
@@ -60,7 +60,7 @@ UPGRADES = {
             3: {"name": "Crossbow", "price": 600, "stats_effect": {'damage': 2, 'pierce': 3, 'projectile_speed_multiplier': 1.2, 'range': 8, 'projectile_lifespan_multiplier': 1.2, 'projectile_type': 'CrossbowProjectile'}}, # Damage +2, pierce +3, speed +20%, range +8, lifespan +20%
         },
     },
-    "Tack Shooter": {
+    "TackShooter": {
         # Path 1: Faster Shooting / Even Faster Shooting / Tack Sprayer
         1: {
             1: {"name": "Faster Shooting", "price": 150, "stats_effect": {'fire_rate_multiplier': 0.75}}, # Faster
@@ -77,10 +77,10 @@ UPGRADES = {
         3: {
             1: {"name": "Extra Pierce", "price": 100, "stats_effect": {'pierce': 1}},
             2: {"name": "More Extra Pierce", "price": 150, "stats_effect": {'pierce': 1}},
-            3: {"name": "Blade Shooter", "price": 600, "stats_effect": {'pierce': 4, 'projectile_type': 'BladeProjectile', 'projectile_radius': 8, 'projectile_color': (150, 150, 150)}}, # Tack pierce becomes 6, new blade projectile
+            3: {"name": "Blade Shooter", "price": 600, "stats_effect": {'pierce': 6, 'projectile_type': 'BladeProjectile', 'projectile_radius': 8, 'projectile_color': (150, 150, 150)}}, # Tack pierce becomes 6, new blade projectile
         },
     },
-    "Sniper Monkey": {
+    "SniperMonkey": {
         # Path 1: Full Metal Jacket / Deadly Precision / Maim MOAB
         1: {
             1: {"name": "Full Metal Jacket", "price": 300, "stats_effect": {'can_pop_lead': True, 'pierce': 2}}, # Enables lead, pierce +2
@@ -100,47 +100,47 @@ UPGRADES = {
             3: {"name": "Bouncing Bullet", "price": 1200, "stats_effect": {'bounces': 3, 'pierce': 2}}, # Bounces to up to 3 more bloons
         },
     },
-    "Dartling Gunner": {
+    "DartlingGunner": {
         # Path 1: Focused Firing / Laser Cannon / Plasma Accelerator
         1: {
-            1: {"name": "Focused Firing", "price": 300, "stats_effect": {'accuracy': 0.05}}, # Makes shots more accurate (0.05 deviation)
-            2: {"name": "Laser Cannon", "price": 800, "stats_effect": {'damage': 1, 'pierce': 2, 'can_pop_lead': True, 'projectile_color': (255, 0, 255)}}, # Damage +1, pierce +2, pops lead, purple color
-            3: {"name": "Plasma Accelerator", "price": 3000, "stats_effect": {'damage': 2, 'pierce': 5, 'fire_rate_multiplier': 0.9}}, # Damage +2, pierce +5, faster (7.0 -> 7.7)
+            1: {"name": "Focused Firing", "price": 325, "stats_effect": {'accuracy': 0.05}}, # Makes shots more accurate (0.05 deviation)
+            2: {"name": "Laser Shock", "price": 970, "stats_effect": {'damage': 1, 'pierce': 2, 'can_pop_lead': True, 'projectile_color': (255, 0, 255)}}, # Damage +1, pierce +2, pops lead, purple color
+            3: {"name": "Laser Cannon", "price": 3240, "stats_effect": {'damage': 2, 'pierce': 5, 'fire_rate_multiplier': 0.9}}, # Damage +2, pierce +5, faster (7.0 -> 7.7)
         },
         # Path 2: Faster Barrel Spin / Hydra Rocket Pods / Bloon Area Denial System
         2: {
-            1: {"name": "Faster Barrel Spin", "price": 250, "stats_effect": {'fire_rate_multiplier': 0.8}}, # Faster attack speed (7.0 -> 8.75)
-            2: {"name": "Hydra Rocket Pods", "price": 1000, "stats_effect": {'num_projectiles': 3, 'aoe_radius': 25, 'damage': 2, 'projectile_type': 'RocketProjectile'}}, # Fires rockets, AOE, damage +2
-            3: {"name": "Bloon Area Denial System", "price": 4500, "stats_effect": {'aoe_radius': 50, 'damage': 3, 'stun_duration': 1.0}}, # Larger AOE, more damage, stun
+            1: {"name": "Advanced Targeting", "price": 270, "stats_effect": {'can_pop_camo': True}}, # Enables camo detection
+            2: {"name": "Faster Barrel Spin", "price": 1025, "stats_effect": {'fire_rate_multiplier': 0.8}}, # Fires faster
+            3: {"name": "Hydra Rocket Pods", "price": 5185, "stats_effect": {'num_projectiles': 1, 'aoe_radius': 25, 'damage': 2, 'projectile_type': 'RocketProjectile', 'fire_rate_multiplier': 0.7}}, # Fires rockets, AOE, damage +2, faster fire rate
         },
         # Path 3: Powerful Darts / Buckshot / M.A.D
         3: {
-            1: {"name": "Powerful Darts", "price": 200, "stats_effect": {'damage': 1, 'pierce': 1}}, # Damage +1, pierce +1
-            2: {"name": "Buckshot", "price": 700, "stats_effect": {'num_projectiles': 5, 'damage': 0.5, 'pierce': 1}}, # Fires 5 pellets, 0.5 damage each, 1 pierce
-            3: {"name": "M.A.D", "price": 6000, "stats_effect": {'damage_moab': 10, 'fire_rate_multiplier': 0.9}}, # Huge MOAB damage, faster (8.75 -> 9.7)
+            1: {"name": "Faster Darts", "price": 200, "stats_effect": {'projectile_speed_multiplier': 1.5}}, # Projectile speed +50%
+            2: {"name": "Powerful Darts", "price": 1295, "stats_effect": {'damage': 1, 'pierce': 1}}, # Damage +1, pierce +1
+            3: {"name": "Buckshot", "price": 3670, "stats_effect": {'num_projectiles': 5, 'damage': 0.5, 'pierce': 1}}, # Fires 5 pellets, 0.5 damage each, 1 pierce
         },
     },
-    "Ice Tower": {
+    "IceTower": {
         # Path 1: Enhanced Freeze / Permafrost / Arctic Wind
         1: {
             1: {"name": "Enhanced Freeze", "price": 150, "stats_effect": {'freeze_duration': 0.5, 'slow_factor': 0.0}}, # Freeze duration +0.5s, no slow
             2: {"name": "Permafrost", "price": 250, "stats_effect": {'slow_factor': 0.4}}, # Bloons remain slowed by 40% after freeze
-            3: {"name": "Arctic Wind", "price": 2000, "stats_effect": {'range': 50, 'damage': 2, 'attack_cooldown': 1.0, 'area_slow': True}}, # Large range, 2 damage, faster attack (2.5 -> 1.5s), constant area slow
+            3: {"name": "Arctic Wind", "price": 2000, "stats_effect": {'range': 50, 'blast_damage': 2, 'attack_cooldown': 1.0, 'area_slow': True}}, # Large range, 2 damage, faster attack (2.5 -> 1.5s), constant area slow
         },
         # Path 2: Cold Snap / Icicle Impale / Super Brittle
         2: {
             1: {"name": "Cold Snap", "price": 100, "stats_effect": {'can_pop_white_zebra_lead': True}}, # Pops White/Zebra/Lead
-            2: {"name": "Icicle Impale", "price": 500, "stats_effect": {'damage': 2, 'freeze_duration': 1.0, 'moab_stun_duration': 0.5}}, # Damage +2, longer freeze, stun MOABs
+            2: {"name": "Icicle Impale", "price": 500, "stats_effect": {'blast_damage': 2, 'freeze_duration': 1.0, 'moab_stun_duration': 0.5}}, # Damage +2, longer freeze, stun MOABs
             3: {"name": "Super Brittle", "price": 5000, "stats_effect": {'damage_vulnerable_modifier': 5}}, # Bloons take +5 damage from all sources
         },
         # Path 3: Embrittlement / Absolute Zero / Snowstorm
         3: {
             1: {"name": "Embrittlement", "price": 200, "stats_effect": {'can_pop_frozen_bloons': True}}, # Bloons hit are vulnerable to sharp/shrapnel
             2: {"name": "Absolute Zero", "price": 1000, "stats_effect": {'global_freeze_ability': True, 'ability_cooldown': 60, 'freeze_duration': 3.0}}, # Global freeze ability
-            3: {"name": "Snowstorm", "price": 3000, "stats_effect": {'attack_cooldown': 0.75, 'damage': 3, 'range': 100}}, # Much faster, more damage, larger range
+            3: {"name": "Snowstorm", "price": 3000, "stats_effect": {'attack_cooldown': 0.75, 'blast_damage': 3, 'range': 100}}, # Much faster, more damage, larger range
         },
     },
-    "Banana Farm": {
+    "BananaFarm": {
         # Path 1: Increased Production / Greater Production / Banana Plantation
         1: {
             1: {"name": "Increased Production", "price": 300, "stats_effect": {'banana_rate': 12.0}}, # Bananas every 15s -> 12s
@@ -160,10 +160,10 @@ UPGRADES = {
             3: {"name": "Monkey Wall Street", "price": 15000, "stats_effect": {'auto_collect': True, 'income_per_round': 500}}, # Autocollects all bananas
         },
     },
-    "Cannon Tower": {
+    "CannonTower": {
         # Path 1: Bigger Bombs / Heavy Bombs / Bloon Impact
         1: {
-            1: {"name": "Bigger Bombs", "price": 300, "stats_effect": {'aoe_radius': 10, 'explosion_radius': 15, 'pierce': 5}}, # Radius +10, pierce +5
+            1: {"name": "Bigger Bombs", "price": 300, "stats_effect": {'aoe_radius': 50, 'explosion_radius': 50, 'pierce': 5}}, # Radius +50, pierce +5
             2: {"name": "Heavy Bombs", "price": 400, "stats_effect": {'damage': 1, 'pierce': 10}}, # Damage +1, pierce +10
             3: {"name": "Bloon Impact", "price": 2000, "stats_effect": {'stun_duration': 1.0, 'pierce': 5}}, # Stuns bloons for 1s, pierce +5
         },
@@ -189,7 +189,7 @@ class Tower:
         'pierce': 1,
         'lifespan': 2.0,
         'can_pop_lead': False,
-        'can_pop_camo': False,
+        'can_pop_camo': False, # Default: Cannot pop camo
         'homing': False,
         'aoe_radius': 0,
         'radius': 5 # Default projectile radius
@@ -217,14 +217,55 @@ class Tower:
 
     def find_target(self, enemies):
         """
-        Find the first enemy in range.
-        This can be overridden in subclasses for different targeting modes (e.g., last, close, strong).
+        Find the furthest enemy in range that the tower can pop.
+        Prioritizes enemies deeper into the track (higher current_path_index).
         """
+        furthest_enemy = None
+        max_path_index = -1
+        max_distance_on_segment = -1.0 # To break ties for enemies on the same path segment
+
         for enemy in enemies:
             dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
             if dist <= self.range:
-                return enemy
-        return None
+                # Check for camo immunity
+                if enemy.is_camo and not self.projectile_config.get('can_pop_camo', False):
+                    continue # Skip this enemy if it's camo and tower cannot pop camo
+
+                # Prioritize based on path index first
+                if enemy.current_path_index > max_path_index:
+                    furthest_enemy = enemy
+                    max_path_index = enemy.current_path_index
+                    # Re-calculate distance on segment for new max_path_index
+                    if enemy.current_path_index < len(enemy.path) - 1:
+                        p1 = enemy.path[enemy.current_path_index]
+                        p2 = enemy.path[enemy.current_path_index + 1]
+                        segment_length_sq = (p2[0] - p1[0])**2 + (p2[1] - p1[1])**2
+                        if segment_length_sq > 0:
+                            # Calculate projected position along segment
+                            t = ((enemy.x - p1[0]) * (p2[0] - p1[0]) + (enemy.y - p1[1]) * (p2[1] - p1[1])) / segment_length_sq
+                            max_distance_on_segment = t
+                        else:
+                            max_distance_on_segment = 0.0 # It's a point, so at start of segment
+                    else: # Enemy is at the very end of the path
+                        max_distance_on_segment = 1.0 # Max value for end of path
+                elif enemy.current_path_index == max_path_index:
+                    # If on the same path segment, check which is further along that segment
+                    if enemy.current_path_index < len(enemy.path) - 1:
+                        p1 = enemy.path[enemy.current_path_index]
+                        p2 = enemy.path[enemy.current_path_index + 1]
+                        segment_length_sq = (p2[0] - p1[0])**2 + (p2[1] - p1[1])**2
+                        if segment_length_sq > 0:
+                            t = ((enemy.x - p1[0]) * (p2[0] - p1[0]) + (enemy.y - p1[1]) * (p2[1] - p1[1])) / segment_length_sq
+                            if t > max_distance_on_segment:
+                                furthest_enemy = enemy
+                                max_distance_on_segment = t
+                        else: # Segment is a point, assume they are at the "same" spot on it
+                             pass # Keep the current furthest_enemy if on a point
+                    else: # Both are at the very end, keep the first one found (or current)
+                        pass # Keep the current furthest_enemy if at the very end of the path
+
+
+        return furthest_enemy
 
     def fire(self, enemies: list, current_time: float):
         """
@@ -271,9 +312,10 @@ class Tower:
                     proj.apply_effects(hit_enemy)
                 proj.pierce -= 1 # Reduce pierce count after hitting an enemy
 
-                # If it's a CannonProjectile and has an AOE radius, trigger its explosion
-                if isinstance(proj, CannonProjectile) and proj.aoe_radius > 0:
-                    proj.explode(screen, enemies) # Cannon explosion affects nearby enemies
+                # If it's a CannonProjectile or RocketProjectile and has an AOE radius, trigger its explosion
+                if (isinstance(proj, CannonProjectile) or isinstance(proj, RocketProjectile)) and proj.aoe_radius > 0:
+                    # Pass the current enemy list to the explosion to potentially damage multiple enemies
+                    proj.explode(screen, enemies) 
 
             # Remove the projectile if it has no pierce left or has expired (e.g., reached max distance/lifespan)
             if proj.should_expire():
@@ -358,6 +400,8 @@ class Tower:
                     self.range += value
                 elif stat == 'damage':
                     self.projectile_config['damage'] += value
+                elif stat == 'blast_damage': # For Ice Tower's direct damage
+                    self.blast_damage += value
                 elif stat == 'pierce':
                     self.projectile_config['pierce'] += value
                 elif stat == 'aoe_radius':
@@ -379,6 +423,9 @@ class Tower:
                 elif stat == 'homing':
                     self.projectile_config['homing'] = value
                 elif stat == 'num_projectiles':
+                    # Only add if it's a new projectile type that needs to fire multiple
+                    # Dart Monkey Triple Shot is num_projectiles = 3 (base 1 + 2)
+                    # Tack Shooter Tack Sprayer is num_projectiles = 13 (base 8 + 5)
                     self.num_projectiles += value
                 elif stat == 'accuracy': # Dartling specific, lower value means more accurate (less deviation)
                     self.accuracy = value
@@ -440,14 +487,13 @@ class Tower:
                     self.auto_collect = value
                 elif stat == 'projectile_type': # Change projectile class type
                     if value == 'SpikeProjectile':
-                        self.projectile_type = DartProjectile # Placeholder, ideally a new class
+                        self.projectile_type = SpikeProjectile
                     elif value == 'CrossbowProjectile':
-                        self.projectile_type = DartProjectile # Placeholder, ideally a new class
+                        self.projectile_type = CrossbowProjectile
                     elif value == 'BladeProjectile':
-                        self.projectile_type = TackProjectile # Placeholder, ideally a new class
+                        self.projectile_type = BladeProjectile
                     elif value == 'RocketProjectile':
-                        self.projectile_type = Projectile # Placeholder, ideally a new class
-                    # Add more projectile type changes here
+                        self.projectile_type = RocketProjectile
                 # Add more special stat handling as needed for specific towers/upgrades
 
         # Increment the tier for the applied path
@@ -475,9 +521,9 @@ class CannonTower(Tower):
         self.projectile_type = CannonProjectile # Uses the specialized CannonProjectile
         self.projectile_config.update({
             'damage': 1, # Base damage
-            'speed': 10, # Projectile speed
-            'aoe_radius': 20, # Base AOE radius
-            'explosion_radius': 30, # Visual explosion radius
+            'speed': 200, # Projectile speed (pixels/second)
+            'aoe_radius': 75, # Base AOE radius - significantly increased for visibility
+            'explosion_radius': 75, # Visual explosion radius - now matches aoe_radius
             'can_pop_lead': True, # Base cannon can pop lead bloons
             'radius': 8 # Projectile radius
         })
@@ -496,11 +542,11 @@ class DartMonkey(Tower):
         self.range = 100 # Approx for 32 game units
         self.base_fire_rate = 1.0 / 0.95 # BTD6 base: 0.95 seconds attack speed
         self.fire_rate = self.base_fire_rate
-        self.projectile_type = Projectile # Uses the base Projectile class
+        self.projectile_type = DartProjectile # Uses the DartProjectile class
         self.projectile_config.update({
             'damage': 1,
-            'speed': 10,
-            'pierce': 2, # Base pierce 2
+            'speed': 300, # Increased speed for better visibility
+            'pierce': 1, # Base pierce 1
             'trail_length': 0, # Dart Monkey does not have visual trail
             'can_pop_lead': False,
             'can_pop_camo': False,
@@ -518,7 +564,7 @@ class TackShooter(Tower):
         self.projectile_type = TackProjectile # Uses the specialized TackProjectile
         self.projectile_config.update({
             'damage': 1,
-            'speed': 8,
+            'speed': 300, # Increased speed for better visibility
             'lifespan': 0.2,  # Very short lifespan for tacks
             'pierce': 1,
             'max_distance': 50, # Very short max distance for tacks
@@ -531,14 +577,23 @@ class TackShooter(Tower):
     def fire(self, enemies: list, current_time: float):
         """
         Overrides the base fire method to shoot tacks in 8 radial directions.
+        Fires if any valid target is in range to avoid unnecessary firing at
+        only immune bloons.
         """
         if current_time - self.last_shot < (1.0 / self.fire_rate):
             return
 
-        # Check if any enemy is in range to trigger firing
-        in_range = any(math.sqrt((e.x - self.x)**2 + (e.y - self.y)**2) <= self.range for e in enemies)
+        has_valid_target = False
+        for enemy in enemies:
+            dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
+            if dist <= self.range:
+                # Check if the projectile config (which might be updated by upgrades)
+                # allows popping this specific enemy's type/property (camo).
+                if not (enemy.is_camo and not self.projectile_config.get('can_pop_camo', False)):
+                    has_valid_target = True
+                    break # Found at least one valid target
 
-        if in_range:
+        if has_valid_target:
             # Fire self.num_projectiles in radial directions
             for i in range(self.num_projectiles):
                 angle = (360 / self.num_projectiles) * i
@@ -577,17 +632,56 @@ class SniperMonkey(Tower):
     def find_target(self, enemies):
         """
         Finds the enemy farthest along the path, prioritizing enemies deeper into the track.
+        This version specifically handles Sniper Monkey's global range and camo immunity.
         """
         if not enemies:
             return None
 
-        farthest_enemy = None
+        furthest_enemy = None
         max_path_index = -1
+        max_distance_on_segment = -1.0
+
         for enemy in enemies:
+            # Sniper has infinite range, so no dist check against self.range
+            # Check for camo immunity
+            if enemy.is_camo and not self.projectile_config.get('can_pop_camo', False):
+                continue # Skip this enemy if it's camo and sniper cannot pop camo
+
+            # Prioritize based on path index first
             if enemy.current_path_index > max_path_index:
-                farthest_enemy = enemy
+                furthest_enemy = enemy
                 max_path_index = enemy.current_path_index
-        return farthest_enemy
+                # Re-calculate distance on segment for new max_path_index
+                if enemy.current_path_index < len(enemy.path) - 1:
+                    p1 = enemy.path[enemy.current_path_index]
+                    p2 = enemy.path[enemy.current_path_index + 1]
+                    segment_length_sq = (p2[0] - p1[0])**2 + (p2[1] - p1[1])**2
+                    if segment_length_sq > 0:
+                        # Calculate projected position along segment
+                        t = ((enemy.x - p1[0]) * (p2[0] - p1[0]) + (enemy.y - p1[1]) * (p2[1] - p1[1])) / segment_length_sq
+                        max_distance_on_segment = t
+                    else:
+                        max_distance_on_segment = 0.0 # It's a point, so at start of segment
+                else: # Enemy is at the very end of the path
+                    max_distance_on_segment = 1.0 # Max value for end of path
+            elif enemy.current_path_index == max_path_index:
+                # If on the same path segment, check which is further along that segment
+                if enemy.current_path_index < len(enemy.path) - 1:
+                    p1 = enemy.path[enemy.current_path_index]
+                    p2 = enemy.path[enemy.current_path_index + 1]
+                    segment_length_sq = (p2[0] - p1[0])**2 + (p2[1] - p1[1])**2
+                    if segment_length_sq > 0:
+                        t = ((enemy.x - p1[0]) * (p2[0] - p1[0]) + (enemy.y - p1[1]) * (p2[1] - p1[1])) / segment_length_sq
+                        if t > max_distance_on_segment:
+                            furthest_enemy = enemy
+                            max_distance_on_segment = t
+                    else: # Segment is a point, assume they are at the "same" spot on it
+                            pass # Keep the current furthest_enemy if on a point
+                else: # Both are at the very end, keep the first one found (or current)
+                    pass # Keep the current furthest_enemy if at the very end of the path
+
+        return furthest_enemy
+
 
     def fire(self, enemies: list, current_time: float):
         """
@@ -606,7 +700,7 @@ class SniperMonkey(Tower):
 
     def update(self, enemies: list, current_time: float):
         # Handle Supply Drop ability
-        if self.income_ability > 0 and current_time - self.last_ability_time >= self.ability_cooldown:
+        if self.income_ability > 0 and self.ability_cooldown > 0 and current_time - getattr(self, 'last_ability_time', 0) >= self.ability_cooldown:
             # For now, just print income. In game, add to player's money.
             print(f"Sniper Supply Drop: +${self.income_ability}")
             self.last_ability_time = current_time
@@ -627,18 +721,18 @@ class DartlingGunner(Tower):
         super().__init__(x, y)
         self.price = tower_menu_info["Dartling Gunner"]["price"]
         self.color = (150, 75, 0)  # Brown color for Dartling Gunner
-        self.base_fire_rate = 7.0  # BTD6 Base: 7.0 shots per second
+        self.base_fire_rate = 4.0  # BTD6 Base: 4.0 shots per second
         self.fire_rate = self.base_fire_rate
         self.range = 250 # Approximation of its targeting range
         self.projectile_type = Projectile  # Uses standard projectiles
         self.projectile_config.update({
             'damage': 1,
-            'speed': 15, # Faster speed for dartling gunner projectiles
-            'pierce': 2,
+            'speed': 300, # Faster speed for dartling gunner projectiles
+            'pierce': 1,
             'aoe_radius': 0,
             'radius': 4, # Smaller radius
             'can_pop_lead': False,
-            'can_pop_camo': False,
+            'can_pop_camo': False, # Base Dartling cannot pop camo
         })
         self.num_projectiles = 1
         self.accuracy = 0.0 # 0.0 means perfect accuracy, higher means more deviation (0.0 to 1.0)
@@ -648,6 +742,7 @@ class DartlingGunner(Tower):
     def fire(self, mouse_pos: tuple, current_time: float): # Modified to take mouse_pos directly
         """
         Fires projectiles at the current mouse position, with accuracy deviation.
+        Dartling Gunner fires regardless of targets, but its projectiles will respect camo.
         """
         if current_time - self.last_shot < (1.0 / self.fire_rate):
             return
@@ -677,13 +772,13 @@ class IceTower(Tower):
         self.range = 75 # Approx. 40 game units BTD6
         self.slow_factor = 0.67  # 33% slow
         self.slow_duration = 2.0  # seconds
-        self.slow_damage = 1 # 1 damage per blast
+        self.blast_damage = 1 # Initial damage for its blast
         self.last_attack_time = 0
         self.attack_cooldown = 2.5 # seconds (every 2.5 seconds, fits 2-3 sec user request)
         
         # Ice Tower doesn't fire projectiles, so remove related configs
-        self.projectile_type = None 
-        self.projectile_config = {}
+        self.projectile_type = None
+        self.projectile_config = {} # Ensure it's an empty dict
         self.projectiles = [] # Ensure no projectiles are stored
 
         # Ice Tower specific upgrade attributes
@@ -693,55 +788,102 @@ class IceTower(Tower):
         self.moab_stun_duration = 0 # From upgrades
         self.damage_vulnerable_modifier = 0 # From upgrades
         self.area_slow = False # For Arctic Wind, means constant slow
+        self.freeze_duration = 0 # Initial freeze duration from upgrades, default 0
+        self.show_blast_aura = False # Flag to show momentary blast visual
 
-    def update(self, enemies: list, current_time: float, screen): # Added screen to draw momentary aura
+    def update(self, enemies: list, current_time: float, screen):
         """
-        Applies a momentary slow aura to enemies within its range and deals damage.
-        If Arctic Wind (area_slow) is active, it's a constant effect.
+        Applies effects to enemies within its range.
+        Handles Absolute Zero ability, Arctic Wind constant effect, and
+        base Ice Tower momentary blast.
         """
-        # Arctic Wind (constant aura) vs. momentary blast
-        if self.area_slow:
-            # Constant aura logic (simplified for now as drawing happens in draw method)
+        # Handle ability if present (e.g. Absolute Zero) - this should be distinct from normal attack
+        if self.global_freeze_ability and self.ability_cooldown > 0 and current_time - getattr(self, 'last_ability_time', 0) >= self.ability_cooldown:
+            print("Absolute Zero activated! Global Freeze!")
             for enemy in enemies:
+                # If Absolute Zero should respect camo immunity, add a check here.
+                # Currently, it affects all bloons globally.
+                if not hasattr(enemy, 'original_speed'):
+                    enemy.original_speed = enemy.speed
+                enemy.speed = 0 # Fully stop bloons
+                enemy.frozen = True
+                enemy.freeze_expire_time = current_time + self.freeze_duration # Use tower's freeze_duration
+                # Add check for pop type if Cold Snap is active: can_pop_white_zebra_lead
+                # This logic is handled by the projectile config if it were a projectile.
+                # For Ice Tower, it's more about "can it damage/affect this bloon type".
+                # For Absolute Zero, it universally freezes.
+            self.last_ability_time = current_time # Update ability cooldown timer
+
+        if self.area_slow: # Arctic Wind - constant effect (Tier 3 Path 1)
+            # Damage periodically within constant aura
+            if current_time - self.last_attack_time >= self.attack_cooldown:
+                for enemy in enemies:
+                    dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
+                    if dist <= self.range:
+                        # Ice tower cannot pop camo by default, Arctic Wind also needs to respect it.
+                        if enemy.is_camo and not self.projectile_config.get('can_pop_camo', False):
+                            continue # Skip camo bloon
+                        enemy.take_damage(self.blast_damage) # Use blast_damage for area slow damage
+                self.last_attack_time = current_time
+
+            # Apply slow/freeze for bloons in range (continuous)
+            for enemy in enemies:
+                if hasattr(enemy, 'frozen_by_ice_tower') and enemy.frozen_by_ice_tower and current_time > enemy.freeze_expire_time:
+                    # This means the freeze from Absolute Zero expired.
+                    # Reapply slow if still in range of Arctic Wind.
+                    enemy.frozen = False
+                    del enemy.frozen_by_ice_tower # Clear the flag once expired
+                    if hasattr(enemy, 'freeze_expire_time'): del enemy.freeze_expire_time
+
+
                 dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
                 if dist <= self.range:
-                    if not hasattr(enemy, 'ice_slow_active') or not enemy.ice_slow_active:
+                    # Ice tower cannot pop camo by default. Area slow needs to respect it.
+                    if enemy.is_camo and not self.projectile_config.get('can_pop_camo', False):
+                        continue # Skip camo bloon
+
+                    if not hasattr(enemy, 'ice_slow_active') or not enemy.ice_slow_active or enemy.ice_slow_source != self:
                         if not hasattr(enemy, 'original_speed'):
                             enemy.original_speed = enemy.speed
                         enemy.speed = enemy.original_speed * self.slow_factor
                         enemy.ice_slow_active = True # Mark as slowed by ice tower
                         enemy.ice_slow_source = self # Mark which tower slowed it
+                        # If freeze_duration is set (e.g., from Absolute Zero), apply initial freeze
+                        if self.freeze_duration > 0 and not hasattr(enemy, 'frozen_by_ice_tower'):
+                             enemy.frozen = True
+                             enemy.frozen_by_ice_tower = True # Prevent continuous re-freezing
+                             enemy.freeze_expire_time = current_time + self.freeze_duration
+                    elif hasattr(enemy, 'frozen_by_ice_tower') and enemy.frozen_by_ice_tower:
+                         enemy.freeze_expire_time = current_time + self.freeze_duration # Extend freeze if still in range
 
             # Clean up speeds for bloons leaving the aura
             for enemy in enemies:
                 if hasattr(enemy, 'ice_slow_active') and enemy.ice_slow_active and enemy.ice_slow_source == self:
                     dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
                     if dist > self.range:
-                        enemy.speed = enemy.original_speed
-                        del enemy.original_speed
+                        if hasattr(enemy, 'original_speed'):
+                            enemy.speed = enemy.original_speed
+                            del enemy.original_speed
                         enemy.ice_slow_active = False
                         del enemy.ice_slow_source
-            
-            # Damage periodically within constant aura (e.g., every 0.5s if not already handled by attack_cooldown)
-            if current_time - self.last_attack_time >= self.attack_cooldown:
-                for enemy in enemies:
-                    dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
-                    if dist <= self.range:
-                        enemy.take_damage(self.slow_damage) # Use slow_damage as base damage
-                self.last_attack_time = current_time
+                        enemy.frozen = False # Unfreeze if leaving aura
+                        if hasattr(enemy, 'frozen_by_ice_tower'): del enemy.frozen_by_ice_tower
+                        if hasattr(enemy, 'freeze_expire_time'): del enemy.freeze_expire_time
 
-        else: # Momentary blast logic (base Ice Tower)
+
+        else: # Momentary blast logic (base Ice Tower and upgrades that don't make it continuous)
             if current_time - self.last_attack_time >= self.attack_cooldown:
-                # Draw momentary aura visual for a single frame
-                aura_surface = pygame.Surface((self.range * 2, self.range * 2), pygame.SRCALPHA)
-                pygame.draw.circle(aura_surface, (100, 200, 255, 70), (self.range, self.range), self.range) # Semi-transparent blue
-                screen.blit(aura_surface, (self.x - self.range, self.y - self.range))
+                self.show_blast_aura = True # Set flag to draw aura for this frame
 
                 for enemy in enemies:
                     dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
                     if dist <= self.range:
+                        # Ice tower cannot pop camo by default. Blast needs to respect it.
+                        if enemy.is_camo and not self.projectile_config.get('can_pop_camo', False):
+                            continue # Skip camo bloon
+
                         # Apply damage
-                        enemy.take_damage(self.slow_damage)
+                        enemy.take_damage(self.blast_damage) # Use blast_damage
 
                         # Apply slow effect (non-stackable by this specific tower instance)
                         if not hasattr(enemy, 'ice_slow_active') or not enemy.ice_slow_active:
@@ -751,26 +893,43 @@ class IceTower(Tower):
                             enemy.ice_slow_expire_time = current_time + self.slow_duration
                             enemy.ice_slow_active = True # Mark as slowed by ice tower
                             enemy.ice_slow_source = self # Mark which tower slowed it
+                            # If freeze_duration is set, apply initial freeze
+                            if self.freeze_duration > 0:
+                                enemy.frozen = True
+                                enemy.freeze_expire_time = current_time + self.freeze_duration
                 self.last_attack_time = current_time
             
-            # Check and remove expired slow effects for momentary blasts
+            # Check and remove expired slow/freeze effects for momentary blasts
             for enemy in enemies:
                 if hasattr(enemy, 'ice_slow_active') and enemy.ice_slow_active and enemy.ice_slow_source == self and current_time > enemy.ice_slow_expire_time:
-                    enemy.speed = enemy.original_speed # Reset speed
-                    del enemy.original_speed # Clean up
+                    if hasattr(enemy, 'original_speed'):
+                        enemy.speed = enemy.original_speed # Reset speed
+                        del enemy.original_speed # Clean up
                     enemy.ice_slow_active = False
                     del enemy.ice_slow_source
+                    enemy.frozen = False # Unfreeze
+                    if hasattr(enemy, 'freeze_expire_time'):
+                        del enemy.freeze_expire_time
 
 
     def draw(self, screen, enemies: list):
         """
-        Draws the Ice Tower. If Arctic Wind is active, draw its persistent aura.
+        Draws the Ice Tower. If Arctic Wind is active, draw its persistent aura,
+        or draw a momentary blast aura if triggered.
         """
-        super().draw(screen, enemies)
-        if self.area_slow: # Draw persistent aura for Arctic Wind
+        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.radius)
+        
+        # Draw persistent aura for Arctic Wind
+        if self.area_slow:
             aura_surface = pygame.Surface((self.range * 2, self.range * 2), pygame.SRCALPHA)
             pygame.draw.circle(aura_surface, (100, 200, 255, 50), (self.range, self.range), self.range) # Semi-transparent blue
             screen.blit(aura_surface, (int(self.x - self.range), int(self.y - self.range)))
+        # Draw momentary blast aura
+        elif self.show_blast_aura:
+            aura_surface = pygame.Surface((self.range * 2, self.range * 2), pygame.SRCALPHA)
+            pygame.draw.circle(aura_surface, (100, 200, 255, 70), (self.range, self.range), self.range) # Semi-transparent blue
+            screen.blit(aura_surface, (int(self.x - self.range), int(self.y - self.range)))
+            self.show_blast_aura = False # Reset flag after drawing for one frame
 
 
 class BananaFarm(Tower):
@@ -858,5 +1017,4 @@ class BananaFarm(Tower):
         # Draw bananas that haven't been collected
         for banana in self.bananas:
             if not banana['collected']:
-                pygame.draw.circle(screen, (255, 255, 0), (int(banana['x']), int(banana['y'])), 8) # Yellow for bananas
-
+                pygame.draw.circle(screen, (255, 255, 0), (int(banana['x']), int(banana['y'])), 8)

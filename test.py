@@ -5,7 +5,7 @@ import random # For Dartling Gunner accuracy
 
 from tower import CannonTower, DartMonkey, TackShooter, SniperMonkey, DartlingGunner, IceTower, BananaFarm, UPGRADES # Import tower classes and UPGRADES
 from enemy import Red, Blue, Green, Yellow, Pink, Black, White, Purple, Lead, Zebra, Rainbow, Ceramic, MOAB  # Import enemy classes
-from enemy_info import wave_1, path  # Import predefined enemy waves and path
+from enemy_info import ALL_WAVES, path  # Import predefined enemy waves and path
 from menu import Menu  # Import the menu class for handling UI
 
 # --- Helper Functions for Collision ---
@@ -74,12 +74,14 @@ font = pygame.font.Font(None, 36)  # Define font for rendering text
 
 # Enemy spawning variables
 enemy_list = []  # List to store active enemies
-wave_index = 0  # Index of the current wave
-enemy_spawn_timer = 0  # Timer for spawning enemies
-wave_start_time = pygame.time.get_ticks() / 1000  # Start time of the wave in seconds
+current_wave_set_index = 0  # Index for the main list of waves (ALL_WAVES)
+current_wave_group_index = 0 # Index for groups within the current wave (e.g., Red bloons, then Blue bloons)
+enemies_spawned_in_current_group = 0 # Counter for enemies spawned from the current group
+wave_start_time = pygame.time.get_ticks() / 1000  # Start time for the current group in the wave
+next_enemy_spawn_time = 0 # Time when the next enemy from the current group should spawn
 
 # Initialize the menu
-menu = Menu(screen, money=30000)  # Create the menu object with starting money
+menu = Menu(screen, money=650)  # Create the menu object with starting money
 
 # Towers list
 towers = []  # List to store placed towers
@@ -149,32 +151,64 @@ while running:
                             menu.preview_tower = None  # Clear placement preview
 
     # --- Game State Updates ---
-    # Spawn enemies based on the current wave configuration
-    if wave_index < len(wave_1):
-        wave = wave_1[wave_index]
-        if current_time >= wave["delay_from_start"] + wave_start_time:
-            if enemy_spawn_timer <= 0 and len(enemy_list) < wave["amount"]:
-                enemy_type = wave["type"]
-                # Create enemy instance based on type
-                if enemy_type == "Red": enemy_list.append(Red(path))
-                elif enemy_type == "Blue": enemy_list.append(Blue(path))
-                elif enemy_type == "Green": enemy_list.append(Green(path))
-                elif enemy_type == "Yellow": enemy_list.append(Yellow(path))
-                elif enemy_type == "Pink": enemy_list.append(Pink(path))
-                elif enemy_type == "Black": enemy_list.append(Black(path))
-                elif enemy_type == "White": enemy_list.append(White(path))
-                elif enemy_type == "Purple": enemy_list.append(Purple(path))
-                elif enemy_type == "Lead": enemy_list.append(Lead(path))
-                elif enemy_type == "Zebra": enemy_list.append(Zebra(path))
-                elif enemy_type == "Rainbow": enemy_list.append(Rainbow(path))
-                elif enemy_type == "Ceramic": enemy_list.append(Ceramic(path))
-                elif enemy_type == "MOAB": enemy_list.append(MOAB(path))
-                enemy_spawn_timer = wave["spawn_delay"]
-            elif len(enemy_list) >= wave["amount"]: # All enemies for this wave spawned
-                wave_index += 1
-                wave_start_time = current_time
-            else:
-                enemy_spawn_timer -= time_started # Countdown to next enemy spawn
+    # Check if there are more waves to play
+    if current_wave_set_index < len(ALL_WAVES):
+        current_wave_data = ALL_WAVES[current_wave_set_index] # This is a list of groups for the current wave
+
+        # --- Handle Spawning of current enemy group in the current wave ---
+        if current_wave_group_index < len(current_wave_data):
+            current_group = current_wave_data[current_wave_group_index]
+
+            # Check if it's time to start spawning this group's enemies and if there are still enemies to spawn
+            if current_time >= wave_start_time + current_group["delay_from_start"] and \
+                enemies_spawned_in_current_group < current_group["amount"]:
+                
+                if current_time >= next_enemy_spawn_time:
+                    enemy_type = current_group["type"]
+                    # Get camo and regrowth flags directly from current_group dictionary
+                    is_camo_bloon = current_group.get("is_camo", False)
+                    is_regrowth_bloon = current_group.get("is_regrowth", False)
+
+                    # Using a dictionary to map strings to classes for cleaner code
+                    enemy_classes = {
+                        "Red": Red, "Blue": Blue, "Green": Green, "Yellow": Yellow, "Pink": Pink,
+                        "Black": Black, "White": White, "Purple": Purple, "Lead": Lead,
+                        "Zebra": Zebra, "Rainbow": Rainbow, "Ceramic": Ceramic, "MOAB": MOAB
+                    }
+                    
+                    if enemy_type in enemy_classes:
+                        new_enemy = enemy_classes[enemy_type](
+                            path, 
+                            is_regrowth=is_regrowth_bloon, 
+                            is_camo=is_camo_bloon
+                        )
+                        
+                        enemy_list.append(new_enemy)
+                        enemies_spawned_in_current_group += 1
+                        next_enemy_spawn_time = current_time + current_group["spawn_delay"]
+            
+            # Check if all enemies in the current group have been spawned
+            if enemies_spawned_in_current_group >= current_group["amount"]:
+                current_wave_group_index += 1 # Move to the next group
+                enemies_spawned_in_current_group = 0 # Reset counter for the next group
+                wave_start_time = current_time # Reset wave start time to current time for the next group's delay
+                next_enemy_spawn_time = current_time # Reset next spawn time immediately
+
+        # --- Check for Wave Completion and Advance to Next Wave Set ---
+        # If all groups in the current wave have been fully processed
+        # AND there are no active enemies left on screen
+        if current_wave_group_index >= len(current_wave_data) and len(enemy_list) == 0:
+            current_wave_set_index += 1
+            menu.increment_wave()  # Update the wave number in the menu UI
+            current_wave_group_index = 0  # Reset group index for the new wave
+            enemies_spawned_in_current_group = 0 # Reset spawned counter for the new wave
+            wave_start_time = current_time  # Reset wave start time for the beginning of the new wave
+            next_enemy_spawn_time = current_time # Reset next spawn time for the new wave
+
+            if current_wave_set_index >= len(ALL_WAVES):
+                print("All waves completed! Game over, you win!")
+                running = False # End the game loop
+
 
     # Move enemies and handle those reaching the end
     for enemy in enemy_list[:]: # Iterate over a copy to allow modification

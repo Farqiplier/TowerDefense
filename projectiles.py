@@ -17,9 +17,10 @@ class Projectile:
         # Core properties
         self.x = x
         self.y = y
-        self.start_pos = (x, y)
+        # Initial start_pos is set when projectile is created
+        self.start_pos = (x, y) 
         self.target_pos = target_pos  # Stores position target was at when fired
-        self.speed = kwargs.get('speed', 5)
+        self.speed = kwargs.get('speed', 5) # Speed in pixels per second
         self.damage = kwargs.get('damage', 1)
         self.pierce = kwargs.get('pierce', 1)
         self.max_pierce = self.pierce # Keep original pierce count
@@ -59,21 +60,24 @@ class Projectile:
         dx = self.target_pos[0] - self.x
         dy = self.target_pos[1] - self.y
         dist = max(1.0, math.sqrt(dx*dx + dy*dy)) # Avoid division by zero
-        return [dx/dist * self.speed, dy/dist * self.speed]
+        return [dx/dist * self.speed, dy/dist * self.speed] # velocity components (pixels per second)
 
     def move(self, dt: float):
         """
-        Update projectile's position based on its velocity and delta time.
+        Update projectile's position based on its velocity and delta time (dt in seconds).
         If homing, adjust velocity towards the current target.
         """
         self.age += dt # Increase age
         
-        # Calculate distance moved in this frame
-        dist_moved_this_frame = self.speed * dt * 60 # Assuming 60 FPS for simplicity; dt is in seconds
-        self.distance_traveled += dist_moved_this_frame
+        # Store current position as the start of the segment for collision detection in this frame
+        self.start_pos = (self.x, self.y) 
 
-        self.x += self.velocity[0] * dt * 60 # Convert dt (seconds) to frames by multiplying by FPS (60)
-        self.y += self.velocity[1] * dt * 60
+        # Update position based on velocity (pixels/second) and dt (seconds)
+        self.x += self.velocity[0] * dt
+        self.y += self.velocity[1] * dt
+
+        # Update distance traveled
+        self.distance_traveled += self.speed * dt # Distance is speed * time
 
         # Update trail points if trail_length is configured
         if self.trail_length > 0:
@@ -88,23 +92,24 @@ class Projectile:
         Returns the first enemy hit (and valid) or None.
         """
         # Define the line segment for collision check
-        line_start = self.start_pos # Projectile's starting point
-        line_end = (self.x, self.y) # Projectile's current point
+        line_start = self.start_pos # Projectile's starting point for this frame's movement
+        line_end = (self.x, self.y) # Projectile's current (end) point for this frame's movement
 
-        # If the projectile hasn't moved yet, no line segment exists for collision
+        # If the projectile hasn't moved yet in this frame, no line segment exists for collision
         if line_start == line_end:
             return None
 
         # Calculate vector for the line segment
         line_vec = (line_end[0] - line_start[0], line_end[1] - line_start[1])
         line_len_sq = line_vec[0]**2 + line_vec[1]**2
-        if line_len_sq == 0: # Line has zero length, no collision possible
+        if line_len_sq == 0: # Line has zero length, no collision possible (should be caught by line_start == line_end)
             return None
 
         for enemy in enemies:
             # Skip if the enemy cannot be popped by this projectile type
+            # Check enemy.is_camo directly from the enemy object
             if (isinstance(enemy, Lead) and not self.can_pop_lead) or \
-               (getattr(enemy, 'camo', False) and not self.can_pop_camo):
+               (enemy.is_camo and not self.can_pop_camo): # Use enemy.is_camo directly
                 continue
 
             # Vector from line start to enemy center
@@ -202,6 +207,7 @@ class CannonProjectile(Projectile):
         """
         Handles the Area of Effect (AOE) explosion damage for the cannon projectile.
         """
+        print(f"CannonProjectile.explode() called at ({self.x}, {self.y}) with AOE Radius: {self.aoe_radius}, Damage: {self.damage}")
         if self.aoe_radius > 0:
             # Draw a visual representation of the explosion
             pygame.draw.circle(screen, (255, 165, 0), (int(self.x), int(self.y)), self.explosion_radius, 2) # Orange outline
@@ -210,8 +216,15 @@ class CannonProjectile(Projectile):
             for enemy in enemies:
                 dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
                 if dist <= self.aoe_radius: # Use aoe_radius for damage application
+                    # Check camo immunity for explosion damage as well
+                    if enemy.is_camo and not self.can_pop_camo:
+                        print(f"  Skipping camo enemy {enemy.bloon_type} (ID: {id(enemy)}) in explosion.")
+                        continue # Skip camo bloon if projectile can't pop camo
+
+                    print(f"  Enemy {enemy.bloon_type} (ID: {id(enemy)}) in range, health before: {enemy.health}")
                     enemy.take_damage(self.damage)
                     self.apply_effects(enemy) # Apply effects from the cannon shot
+                    print(f"  Enemy {enemy.bloon_type} (ID: {id(enemy)}) health after: {enemy.health}")
 
 class HitscanProjectile:
     """
@@ -234,7 +247,7 @@ class HitscanProjectile:
         if self.target:
             # Check if the target can be popped by this hitscan type
             if (isinstance(self.target, Lead) and not self.can_pop_lead) or \
-               (getattr(self.target, 'camo', False) and not self.can_pop_camo):
+               (self.target.is_camo and not self.can_pop_camo): # Use self.target.is_camo directly
                 # If target can't be popped, no damage/effects are applied
                 return
 
@@ -246,3 +259,99 @@ class HitscanProjectile:
                     self.target.speed = self.target.original_speed * 0.5
                 elif effect == 'stun':
                     self.target.stun_duration = 1.0
+
+class SpikeProjectile(Projectile):
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A large, sharp spike projectile fired by the Spike-o-pult.
+        Has high pierce and can pop multiple bloons.
+        """
+        super().__init__(x, y, target_pos, **kwargs)
+        self.radius = kwargs.get('radius', 15) # Larger radius for visual representation
+        self.color = kwargs.get('color', (100, 50, 0)) # Brownish color for spike
+        self.pierce = kwargs.get('pierce', 22) # Base pierce for Spike-o-pult (22 with upgrades)
+
+class CrossbowProjectile(Projectile):
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A fast, long-range, high-damage projectile fired by the Crossbow.
+        """
+        super().__init__(x, y, target_pos, **kwargs)
+        self.speed = kwargs.get('speed', 400) # Faster speed
+        self.damage = kwargs.get('damage', 3) # Higher damage (1 base + 2 from upgrade)
+        self.pierce = kwargs.get('pierce', 4) # Higher pierce (1 base + 3 from upgrade)
+        self.lifespan = kwargs.get('lifespan', 3.0) # Longer lifespan
+        self.max_distance = kwargs.get('max_distance', float('inf')) # Effectively infinite range
+        self.color = kwargs.get('color', (50, 50, 50)) # Dark color for crossbow bolt
+        self.radius = kwargs.get('radius', 6) # Moderate radius
+
+class BladeProjectile(Projectile):
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A blade projectile fired by the Tack Shooter (Blade Shooter upgrade).
+        Rotates and has high pierce.
+        """
+        super().__init__(x, y, target_pos, **kwargs)
+        self.radius = kwargs.get('radius', 8) # Visual radius
+        self.color = kwargs.get('color', (150, 150, 150)) # Grayish color
+        self.pierce = kwargs.get('pierce', 6) # High pierce
+        self.rotation_angle = 0
+        self.rotation_speed = 360 # degrees per second
+
+    def move(self, dt: float):
+        super().move(dt)
+        self.rotation_angle = (self.rotation_angle + self.rotation_speed * dt) % 360
+
+    def draw(self, screen):
+        # Draw a simple rotating cross or square to represent the blade
+        temp_surface = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(temp_surface, self.color, (self.radius, self.radius), self.radius) # Base circle
+        pygame.draw.line(temp_surface, (0, 0, 0), (self.radius, 0), (self.radius, self.radius * 2), 2) # Cross
+        pygame.draw.line(temp_surface, (0, 0, 0), (0, self.radius), (self.radius * 2, self.radius), 2)
+
+        rotated_surface = pygame.transform.rotate(temp_surface, self.rotation_angle)
+        new_rect = rotated_surface.get_rect(center=(int(self.x), int(self.y)))
+        screen.blit(rotated_surface, new_rect)
+
+
+class RocketProjectile(Projectile):
+    def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):
+        """
+        A rocket projectile fired by the Dartling Gunner (Hydra Rocket Pods upgrade).
+        Has AOE damage.
+        """
+        super().__init__(x, y, target_pos, **kwargs)
+        self.aoe_radius = kwargs.get('aoe_radius', 25) # AOE radius
+        self.damage = kwargs.get('damage', 2) # Higher damage (base 1 + 2 from upgrade)
+        self.color = kwargs.get('color', (200, 50, 0)) # Orangish-red for rocket
+        self.radius = kwargs.get('radius', 8) # Larger visual
+        self.trail_length = kwargs.get('trail_length', 10) # Visible trail for rockets
+
+    def check_collision(self, enemies: List[Any]) -> Optional[Any]:
+        """
+        For rockets, collision acts like a CannonProjectile's explosion on first hit.
+        It hits one, then explodes to damage others.
+        """
+        hit_enemy = super().check_collision(enemies)
+        if hit_enemy:
+            # When a rocket hits, it "explodes" in a small AOE
+            self.explode(pygame.display.get_surface(), enemies) # Get current screen surface
+        return hit_enemy
+    
+    def explode(self, screen, enemies: List[Any]):
+        """
+        Handles the Area of Effect (AOE) explosion damage for the rocket projectile.
+        """
+        if self.aoe_radius > 0:
+            # Draw a visual representation of the explosion (small burst)
+            pygame.draw.circle(screen, (255, 200, 0), (int(self.x), int(self.y)), self.aoe_radius, 2) # Yellow outline
+
+            # Damage all enemies within the explosion radius
+            for enemy in enemies:
+                dist = math.sqrt((enemy.x - self.x)**2 + (enemy.y - self.y)**2)
+                if dist <= self.aoe_radius:
+                    if enemy.is_camo and not self.can_pop_camo:
+                        continue # Skip camo bloon if projectile can't pop camo
+                    
+                    enemy.take_damage(self.damage)
+                    self.apply_effects(enemy) # Apply effects from the rocket hit

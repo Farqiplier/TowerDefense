@@ -7,24 +7,20 @@ class Menu:
         self.money = money
         self.font = pygame.font.Font(None, 36)
         self.small_font = pygame.font.Font(None, 24)
-
-        # Tower buying menu items
+        self.current_wave = 1  # Initialize the current wave number
+        self.selected_placed_tower = None  # Initialize selected placed tower
         self.towers_to_buy = [
             {
-            "name": tower_name,
-            "price": tower_data["price"],
-            "color": tower_data["color"],
-            "x": 50 + index * 100,
-            "y": 800,
+                "name": tower_name,
+                "price": tower_data["price"],
+                "color": tower_data["color"],
+                "x": 50 + index * 100,
+                "y": 800,
             }
             for index, (tower_name, tower_data) in enumerate(tower_menu_info.items())
         ]
-        self.selected_tower_to_buy = None # For placing new towers
-        self.preview_tower = None  # Holds the preview tower's data
-
-        # Upgrade menu items
-        self.selected_placed_tower = None # The actual placed tower object selected for upgrades
-        self.upgrade_buttons = [] # Store rects and data for upgrade buttons
+        self.selected_tower_to_buy = None
+        self.preview_tower = None
 
     def draw_menu(self):
         # Draw the main menu background (for buying new towers)
@@ -35,6 +31,15 @@ class Menu:
             pygame.draw.rect(self.screen, tower["color"], (tower["x"], tower["y"], 50, 50))
             price_text = self.font.render(f"${tower['price']}", True, (0, 0, 0))
             self.screen.blit(price_text, (tower["x"], tower["y"] + 60))
+
+        # Draw the current wave number
+        wave_text = self.font.render(f"Wave: {self.current_wave}", True, (0, 0, 0))
+        self.screen.blit(wave_text, (400, 10))  # Display wave number at the top center
+
+    def increment_wave(self):
+        """Increment the current wave number."""
+        self.current_wave += 1
+
 
     def draw_upgrade_menu(self):
         self.upgrade_buttons = [] # Clear previous buttons
