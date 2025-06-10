@@ -222,7 +222,7 @@ class CannonProjectile(Projectile):
                         continue # Skip camo bloon if projectile can't pop camo
 
                     print(f"  Enemy {enemy.bloon_type} (ID: {id(enemy)}) in range, health before: {enemy.health}")
-                    enemy.take_damage(self.damage)
+                    enemy.take_damage(self.damage) # Deal damage to the enemy in AOE
                     self.apply_effects(enemy) # Apply effects from the cannon shot
                     print(f"  Enemy {enemy.bloon_type} (ID: {id(enemy)}) health after: {enemy.health}")
 
@@ -238,27 +238,46 @@ class HitscanProjectile:
         self.can_pop_lead = kwargs.get('can_pop_lead', False)
         self.can_pop_camo = kwargs.get('can_pop_camo', False)
         self.on_hit_effects = kwargs.get('on_hit_effects', [])
+        # Assuming kwargs might contain 'color' for a potential hit line, etc.
+        self.hit_line_color = kwargs.get('hit_line_color', (200,200,200)) # Example for a hit line
 
-    def apply_hit(self):
+    def apply_hit(self, screen: pygame.Surface, effects_list: list):
         """
         Immediately apply damage and effects to the target.
-        This is called directly by the tower, not in a projectile update loop.
+        Adds a visual hit marker to the effects_list.
+        The 'screen' argument can be used to draw immediate, non-persistent effects like a hit line.
         """
         if self.target:
+            # --- Optional: Draw an immediate, non-persistent hit line ---
+            # This line will be drawn during the update phase and cleared by screen.fill()
+            # pygame.draw.line(screen, self.hit_line_color, (self.source.x, self.source.y), (self.target.x, self.target.y), 1)
+            # --- End Optional Hit Line ---
+
+            can_damage_target = True
             # Check if the target can be popped by this hitscan type
             if (isinstance(self.target, Lead) and not self.can_pop_lead) or \
-               (self.target.is_camo and not self.can_pop_camo): # Use self.target.is_camo directly
-                # If target can't be popped, no damage/effects are applied
-                return
+               (self.target.is_camo and not self.can_pop_camo):
+                can_damage_target = False
 
-            self.target.take_damage(self.damage)
-            for effect in self.on_hit_effects:
-                if effect == 'slow':
-                    if not hasattr(self.target, 'original_speed'):
-                        self.target.original_speed = self.target.speed
-                    self.target.speed = self.target.original_speed * 0.5
-                elif effect == 'stun':
-                    self.target.stun_duration = 1.0
+            if can_damage_target:
+                self.target.take_damage(self.damage)
+                for effect in self.on_hit_effects:
+                    if effect == 'slow':
+                        if not hasattr(self.target, 'original_speed'):
+                            self.target.original_speed = self.target.speed
+                        self.target.speed = self.target.original_speed * 0.5
+                    elif effect == 'stun':
+                        self.target.stun_duration = 1.0
+                
+                # Add hit marker effect to the list for drawing in the main loop
+                effects_list.append({
+                    'type': 'hit_marker',
+                    'pos': (self.target.x, self.target.y),
+                    'color': (255, 255, 0), # YELLOW
+                    'radius': 3, # Diameter 6
+                    'creation_time': pygame.time.get_ticks() / 1000.0,
+                    'duration': 0.15 # Visible for 0.15 seconds
+                })
 
 class SpikeProjectile(Projectile):
     def __init__(self, x: float, y: float, target_pos: Tuple[float, float], **kwargs):

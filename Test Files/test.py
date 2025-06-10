@@ -38,7 +38,7 @@ def is_overlapping_tower(new_x, new_y, new_radius, existing_towers):
     for tower in existing_towers:
         # Calculate distance between centers
         dist = math.sqrt((new_x - tower.x)**2 + (new_y - tower.y)**2)
-        # Check if their circles overlap (add a small buffer if needed for visual spacing)
+        # Check if their circles overlap
         # Assuming tower.radius exists and is roughly consistent with its visual size.
         if dist < (new_radius + tower.radius):
             return True
@@ -63,7 +63,7 @@ screen = pygame.display.set_mode((screen_width, screen_height))  # Create the ga
 pygame.display.set_caption("Tower Defense")  # Set the title of the game window
 
 # Define the path
-path_line_amount = len(path) - 1  # Number of lines in the path
+path_line_amount = len(path) - 1  # Number of segments in the path
 path_thickness = 30  # Thickness of the path lines
 
 # Player health and money
@@ -77,7 +77,7 @@ enemy_list = []  # List to store active enemies
 current_wave_set_index = 0  # Index for the main list of waves (ALL_WAVES)
 current_wave_group_index = 0 # Index for groups within the current wave (e.g., Red bloons, then Blue bloons)
 enemies_spawned_in_current_group = 0 # Counter for enemies spawned from the current group
-wave_start_time = pygame.time.get_ticks() / 1000  # Start time for the current group in the wave
+wave_start_time = pygame.time.get_ticks() / 1000  # Reference time for starting the current wave or group, in seconds
 next_enemy_spawn_time = 0 # Time when the next enemy from the current group should spawn
 
 # Initialize the menu
@@ -94,9 +94,9 @@ running = True
 
 while running:
     # --- Game Loop Timing & Input ---
-    # Limit the frame rate to 60 FPS and calculate delta_time
-    time_started = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
-    current_time = pygame.time.get_ticks() / 1000.0  # Current time in seconds
+    # Limit frame rate to 60 FPS and get frame duration in seconds
+    time_started = clock.tick(60) / 1000.0  # Frame duration in seconds (delta time)
+    current_time = pygame.time.get_ticks() / 1000.0  # Total elapsed game time in seconds
     mouse_pos = pygame.mouse.get_pos()  # Get the current mouse position
 
     # --- Event Handling ---
@@ -191,7 +191,7 @@ while running:
             if enemies_spawned_in_current_group >= current_group["amount"]:
                 current_wave_group_index += 1 # Move to the next group
                 enemies_spawned_in_current_group = 0 # Reset counter for the next group
-                wave_start_time = current_time # Reset wave start time to current time for the next group's delay
+                wave_start_time = current_time # Update reference time: the next group's delay will be relative to this moment
                 next_enemy_spawn_time = current_time # Reset next spawn time immediately
 
         # --- Check for Wave Completion and Advance to Next Wave Set ---
@@ -202,7 +202,7 @@ while running:
             menu.increment_wave()  # Update the wave number in the menu UI
             current_wave_group_index = 0  # Reset group index for the new wave
             enemies_spawned_in_current_group = 0 # Reset spawned counter for the new wave
-            wave_start_time = current_time  # Reset wave start time for the beginning of the new wave
+            wave_start_time = current_time  # Set reference time: the first group of the new wave will use this as its starting point for delays
             next_enemy_spawn_time = current_time # Reset next spawn time for the new wave
 
             if current_wave_set_index >= len(ALL_WAVES):
@@ -215,7 +215,7 @@ while running:
         enemy.move()
         if enemy.current_path_index == len(path) - 1: # Enemy reached end of path
             player_health -= enemy.health
-            menu.money += enemy.money # Player gets money for bloons that leak
+            menu.money += enemy.money # Player loses health; also, the enemy's money value is added to player's money when it leaks
             enemy_list.remove(enemy)
 
     # Update towers (firing, abilities, etc.)
@@ -239,7 +239,7 @@ while running:
     # Clean up dead enemies and spawn children bloons
     for enemy in enemy_list[:]:
         if enemy.health <= 0:
-            menu.money += enemy.money
+            menu.money += enemy.money # Player gains money for destroying an enemy
             enemy.destroyed(enemy_list) # Spawn child bloons if applicable
             enemy_list.remove(enemy)
 
@@ -260,7 +260,7 @@ while running:
 
         # Update and draw projectiles for towers that manage them (MOVED HERE)
         if hasattr(tower, 'projectiles') and tower.projectiles is not None and tower.projectile_type is not None:
-             tower.update_projectiles(screen, enemy_list, time_started)  
+             tower.update_projectiles(screen, enemy_list, time_started) # Pass delta_time (time_started) for projectile movement 
 
     # Display player health and money
     health_text = font.render(f"Health: {player_health}", True, BLACK)

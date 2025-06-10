@@ -1,7 +1,6 @@
 path = [(0, 300), (450, 300), (450, 150), (300, 150), (300, 600), (150, 600), (150, 450), (600, 450), (600, 300), (750, 300), (750, 600), (450, 600), (450, 650)]
 from enemy import Enemy, Red, Blue, Green, Yellow, Pink, Black, White, Purple, Lead, Zebra, Rainbow, Ceramic, MOAB
 
-# Added 'is_regrowth' and 'is_camo' flags to each enemy definition
 wave_3 = [
     {"type": "Red",            "path": path, "amount": 25, "delay_from_start": 0.000, "spawn_delay": 0.5762, "is_camo": False, "is_regrowth": False},
     {"type": "Blue",           "path": path, "amount": 5,  "delay_from_start": 14.4142, "spawn_delay": 0.5762, "is_camo": False, "is_regrowth": False},

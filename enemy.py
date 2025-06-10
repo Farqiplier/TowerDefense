@@ -3,14 +3,31 @@ import os
 import math
 
 class Enemy:
-    # We will now load _camo_image within __init__ after pygame.display is initialized.
-    # So, we remove the class-level loading.
+    # Class attribute to store the camo overlay image.
+    # It's loaded once and shared by all Enemy instances if they are camo.
+    # Initialized to None and loaded in __init__ if a camo bloon is created.
     _camo_image = None 
 
     def __init__(self, path, health, speed, money, bloon_type, contains, start_pos_index=0, start_x=None, start_y=None, is_regrowth=False, is_camo=False):
+        """
+        Initializes an Enemy instance.
+
+        Args:
+            path (list of tuples): The path the enemy will follow, as a list of (x, y) coordinates.
+            health (int): The health of the enemy.
+            speed (float): The movement speed of the enemy.
+            money (int): The amount of money awarded when the enemy is defeated.
+            bloon_type (str): The type of bloon (e.g., "Red", "Blue", "MOAB").
+            contains (list of Enemy classes): A list of Enemy classes that this bloon will spawn when popped.
+            start_pos_index (int, optional): The starting index in the path. Defaults to 0.
+            start_x (float, optional): The starting x-coordinate. Overrides path start if provided with start_y. Defaults to None.
+            start_y (float, optional): The starting y-coordinate. Overrides path start if provided with start_x. Defaults to None.
+            is_regrowth (bool, optional): Whether the bloon has regrowth properties. Defaults to False.
+            is_camo (bool, optional): Whether the bloon has camouflage properties. Defaults to False.
+        """
         self.path = path
         self.health = health
-        self.max_health = health
+        self.max_health = health # Store max health for health bar calculation
         self.speed = speed
         self.money = money
         self.bloon_type = bloon_type
@@ -18,19 +35,20 @@ class Enemy:
         self.is_camo = is_camo
         
         # Initialize current_path_index, x, and y based on arguments
+        # This allows bloons to be spawned mid-path (e.g., when a parent bloon is popped)
         self.current_path_index = start_pos_index
         if start_x is not None and start_y is not None:
             self.x = start_x
             self.y = start_y
         else:
-            # If no starting position is provided, use the beginning of the path
+            # If no specific starting x, y are provided, use the coordinates from the path at the current_path_index
             self.x, self.y = self.path[self.current_path_index]
         
         # Set default dimensions for most bloons (Normal Bloon Size)
         self.width = 30
         self.height = 40
 
-        # Adjust size specifically for Regrowth bloons
+        # Adjust size specifically for Regrowth bloons, making them visually distinct
         if self.is_regrowth:
             self.width = 45
             self.height = 60
