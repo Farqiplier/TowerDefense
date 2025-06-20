@@ -81,7 +81,7 @@ wave_start_time = pygame.time.get_ticks() / 1000  # Reference time for starting 
 next_enemy_spawn_time = 0 # Time when the next enemy from the current group should spawn
 
 # Initialize the menu
-menu = Menu(screen, money=650)  # Create the menu object with starting money
+menu = Menu(screen, money=65000)  # Create the menu object with starting money
 
 # Towers list
 towers = []  # List to store placed towers

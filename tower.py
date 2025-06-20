@@ -1,4 +1,4 @@
-from projectiles import Projectile, DartProjectile, CannonProjectile, TackProjectile, HitscanProjectile, SpikeProjectile, CrossbowProjectile, BladeProjectile, RocketProjectile
+from projectiles import Projectile, DartProjectile, CannonProjectile, TackProjectile, HitscanProjectile, SpikeProjectile, CrossbowProjectile, BladeProjectile, RocketProjectile, ShrapnelProjectile
 import pygame
 import math
 import random
@@ -54,9 +54,9 @@ UPGRADES = {
         },
         # Path 2: Quick Shots / Very Quick Shots / Triple Shots
         2: {
-            1: {"name": "Quick Shots", "price": 120, "stats_effect": {'fire_rate_multiplier': 0.85}}, # Fire_rate x0.85 (cooldown 0.95s -> 1.118s)
-            2: {"name": "Very Quick Shots", "price": 180, "stats_effect": {'fire_rate_multiplier': 0.67}}, # Fire_rate x0.67 (cooldown 1.118s -> 1.668s if P2T1 taken)
-            3: {"name": "Triple Shot", "price": 800, "stats_effect": {'num_projectiles': 2, 'fire_rate_multiplier': 0.75}}, # Fires 1+2=3 darts, fire_rate x0.75 (cooldown 1.668s -> 2.224s if P2T1&T2 taken)
+            1: {"name": "Quick Shots", "price": 120, "stats_effect": {'fire_rate_multiplier': 1.85}}, # Fire_rate x0.85 (cooldown 0.95s -> 1.118s)
+            2: {"name": "Very Quick Shots", "price": 180, "stats_effect": {'fire_rate_multiplier': 1.67}}, # Fire_rate x0.67 (cooldown 1.118s -> 1.668s if P2T1 taken)
+            3: {"name": "Triple Shot", "price": 800, "stats_effect": {'num_projectiles': 2, 'fire_rate_multiplier': 1.75}}, # Fires 1+2=3 darts, fire_rate x0.75 (cooldown 1.668s -> 2.224s if P2T1&T2 taken)
         },
         # Path 3: Long Range Darts / Enhanced Eyesight / Crossbow
         3: {
@@ -68,9 +68,9 @@ UPGRADES = {
     "TackShooter": { # Base Cooldown: 1/1.5 = 0.667s. Base Pierce: 1. Base Damage: 1. Base num_projectiles: 8.
         # Path 1: Faster Shooting / Even Faster Shooting / Tack Sprayer
         1: {
-            1: {"name": "Faster Shooting", "price": 150, "stats_effect": {'fire_rate_multiplier': 0.75}}, # Fire_rate x0.75 (cooldown 0.667s -> 0.889s)
-            2: {"name": "Even Faster Shooting", "price": 200, "stats_effect": {'fire_rate_multiplier': 0.5}}, # Fire_rate x0.5 (cooldown 0.889s -> 1.778s if P1T1 taken)
-            3: {"name": "Tack Sprayer", "price": 800, "stats_effect": {'num_projectiles': 5, 'fire_rate_multiplier': 0.5}}, # Fires 8+5=13 tacks, fire_rate x0.5 (cooldown 1.778s -> 3.556s if P1T1&T2 taken)
+            1: {"name": "Faster Shooting", "price": 150, "stats_effect": {'fire_rate_multiplier': 1.75}}, # Fire_rate x0.75 (cooldown 0.667s -> 0.889s)
+            2: {"name": "Even Faster Shooting", "price": 200, "stats_effect": {'fire_rate_multiplier': 1.5}}, # Fire_rate x0.5 (cooldown 0.889s -> 1.778s if P1T1 taken)
+            3: {"name": "Tack Sprayer", "price": 800, "stats_effect": {'num_projectiles': 5, 'fire_rate_multiplier': 1.5}}, # Fires 8+5=13 tacks, fire_rate x0.5 (cooldown 1.778s -> 3.556s if P1T1&T2 taken)
         },
         # Path 2: Super Range Tacks / Even More Range Tacks / Hot Shots
         2: {
@@ -174,14 +174,14 @@ UPGRADES = {
         },
         # Path 2: Faster Reload / Even Faster Reload / MOAB Mauler
         2: {
-            1: {"name": "Faster Reload", "price": 250, "stats_effect": {'fire_rate_multiplier': 0.8}}, # Fire_rate x0.8 (cooldown 1.4s -> 1.75s)
-            2: {"name": "Even Faster Reload", "price": 350, "stats_effect": {'fire_rate_multiplier': 0.8}}, # Fire_rate x0.8 (cooldown 1.75s -> 2.188s if P2T1 taken)
+            1: {"name": "Faster Reload", "price": 250, "stats_effect": {'fire_rate_multiplier': 1.8}}, # Fire_rate x0.8 (cooldown 1.4s -> 1.75s)
+            2: {"name": "Even Faster Reload", "price": 350, "stats_effect": {'fire_rate_multiplier': 1.8}}, # Fire_rate x0.8 (cooldown 1.75s -> 2.188s if P2T1 taken)
             3: {"name": "MOAB Mauler", "price": 2500, "stats_effect": {'damage_moab': 18, 'damage': 0}}, # damage_moab set to 18, damage +0 (no change to normal damage)
         },
-        # Path 3: Missile Launcher / Mortar Monkey / Pop and Awe
+        # Path 3: Missile Launcher / Shattering Shells / The Big One
         3: {
             1: {"name": "Missile Launcher", "price": 200, "stats_effect": {'projectile_speed_multiplier': 1.5, 'range': 50}}, # Projectile speed x1.5, range +50
-            2: {"name": "Shattering Shells", "price": 700, "stats_effect": {'pierce_fortified': 2, 'damage_fortified': 1}}, # pierce_fortified set to 2, damage_fortified set to 1 (extra effects vs fortified)
+            2: {"name": "Shattering Shells", "price": 700, "stats_effect": {'shrapnel_on_explode': True, 'shrapnel_count': 5, 'shrapnel_damage': 1, 'shrapnel_pierce': 1}}, # ADDED: Now creates shrapnel on explosion
             3: {"name": "The Big One", "price": 3000, "stats_effect": {'aoe_radius': 30, 'damage': 5, 'pierce': 10}}, # aoe_radius +30, damage +5, pierce +10
         },
     },
@@ -274,7 +274,7 @@ class Tower:
         Creates projectiles if the tower is ready to fire (cooldown passed) and a target is found.
         Passes the target's position (x, y) to the projectile.
         """
-        # Fire rate is attacks per second, so cooldown is 1.0 / fire_rate
+        # Fire rate is attacks per second, so cooldown is 1.0 / self.fire_rate
         if current_time - self.last_shot < (1.0 / self.fire_rate): # Check if cooldown has passed
             return
 
@@ -290,6 +290,7 @@ class Tower:
         Adds the new projectile to the tower's list of active projectiles.
         """
         projectile = self.projectile_type(
+            self, # MODIFIED: Pass the tower itself as the source
             self.x, self.y, # Origin of projectile (tower's position)
             target_pos, # Target's static position at time of firing
             **self.projectile_config # Pass all projectile attributes (damage, speed, etc.)
@@ -440,14 +441,19 @@ class Tower:
                     self.accuracy = value
                 elif stat == 'moab_stun_duration': # Sniper/Ice Tower specific for MOABs
                     self.moab_stun_duration = value
-                elif stat == 'shrapnel_count': # Sniper specific
-                    self.shrapnel_count = value
-                elif stat == 'shrapnel_damage': # Sniper specific
-                    self.shrapnel_damage = value
-                elif stat == 'shrapnel_pierce': # Sniper specific
-                    self.shrapnel_pierce = value
+                
+                # MODIFIED: Shrapnel stats now go into the projectile_config for consistency
+                elif stat == 'shrapnel_count':
+                    self.projectile_config['shrapnel_count'] = value
+                elif stat == 'shrapnel_damage':
+                    self.projectile_config['shrapnel_damage'] = value
+                elif stat == 'shrapnel_pierce':
+                    self.projectile_config['shrapnel_pierce'] = value
+                elif stat == 'shrapnel_on_explode': # For cannon
+                    self.projectile_config['shrapnel_on_explode'] = value
+
                 elif stat == 'bounces': # Sniper specific
-                    self.bounces = value
+                    self.projectile_config['bounces'] = value # Note: Bounce logic not implemented
                 elif stat == 'stun_duration': # Cannon/Dartling general stun
                     self.stun_duration = value
                 elif stat == 'damage_moab': # Cannon/Dartling MOAB-specific damage
@@ -631,10 +637,6 @@ class SniperMonkey(Tower):
         })
         # Sniper specific upgrade attributes
         self.moab_stun_duration = 0 # Duration of MOAB stun from Maim MOAB upgrade
-        self.shrapnel_count = 0 # Number of shrapnel pieces from Shrapnel Shot
-        self.shrapnel_damage = 0 # Damage of shrapnel pieces
-        self.shrapnel_pierce = 0 # Pierce of shrapnel pieces
-        self.bounces = 0 # Number of bounces for Bouncing Bullet upgrade
         self.income_ability = 0 # Income generated by Supply Drop ability
         self.last_ability_time = 0 # Timestamp of last Supply Drop activation
         self.ability_cooldown = 0 # Cooldown for Supply Drop ability
@@ -702,8 +704,9 @@ class SniperMonkey(Tower):
         target = self.find_target(enemies)
         if target:
             # Create a HitscanProjectile and immediately apply its hit effect
-            hitscan_projectile = HitscanProjectile(self, target, **self.projectile_config) # Pass tower (self) and target
-            hitscan_projectile.apply_hit(screen, effects_list) # Method to apply damage, effects, shrapnel, and add hit marker
+            # MODIFIED: It now passes the projectile_config which contains shrapnel data
+            hitscan_projectile = HitscanProjectile(self, target, **self.projectile_config) 
+            hitscan_projectile.apply_hit(screen, effects_list)
             self.last_shot = current_time # Reset cooldown
 
     def update(self, enemies: list, current_time: float): # enemies list currently unused here
@@ -727,8 +730,11 @@ class SniperMonkey(Tower):
         """
         Sniper Monkey's projectiles are hitscan (instant). They don't need continuous
         position updates or drawing like traditional projectiles. This method is empty.
+        However, the shrapnel they create are real projectiles and need to be updated.
+        The base Tower.update_projectiles method handles this perfectly.
         """
-        pass # No projectiles to update or draw in the traditional sense
+        super().update_projectiles(screen, enemies, dt)
+
 
 class DartlingGunner(Tower):
     def __init__(self, x: float, y: float):
@@ -1044,4 +1050,3 @@ class BananaFarm(Tower):
         for banana in self.bananas:
             if not banana['collected']:
                 pygame.draw.circle(screen, (255, 255, 0), (int(banana['x']), int(banana['y'])), 8) # Yellow circle for banana
-
